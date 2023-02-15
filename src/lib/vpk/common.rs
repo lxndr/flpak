@@ -1,0 +1,1 @@
+pub const VPK_SIGNATURE: &[u8; 4] = &[0x34, 0x12, 0xaa, 0x55];

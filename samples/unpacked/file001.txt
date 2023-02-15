@@ -1,0 +1,5 @@
+here's some sample text
+
+new line
+
+end of file

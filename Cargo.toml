@@ -1,0 +1,30 @@
+[package]
+name = "flpak"
+version = "0.3.0"
+edition = "2021"
+
+[lib]
+name = "flpak"
+path = "src/lib/mod.rs"
+
+[[bin]]
+name = "flpak"
+path = "src/bin/cli.rs"
+
+[[bin]]
+name = "flpak-gui"
+path = "src/bin/gui.rs"
+
+[dependencies]
+clap = { version = "4.1.4", features = ["derive"] }
+glob = "0.3.1"
+hex-literal = "0.3.4"
+iced = "0.7.0"
+libflate = "1.2.0"
+lz4_flex = "0.10.0"
+serde = { version = "1.0.152", features = ["derive"] }
+serde-pickle = "1.1.1"
+sha1 = "0.10.5"
+tempdir = "0.3.7"
+thiserror = "1.0.38"
+walkdir = "2.3.2"
