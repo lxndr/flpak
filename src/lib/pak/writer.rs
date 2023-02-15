@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use crate::{writer, WriteEx, InputFileList, InputFile, FileType, IntoUnixPath};
+use crate::{writer, FileType, InputFile, InputFileList, IntoUnixPath, WriteEx};
 
 use super::common::{PAK_FILE_ENTRY_SIZE, PAK_SIGNATURE};
 
@@ -27,8 +27,9 @@ pub fn create_archive(input_files: InputFileList, path: &Path) -> writer::Result
     let mut index_cursor = Cursor::new(&mut index_buffer);
 
     for input_file in input_files {
-        let metadata = input_file.host_path.metadata()
-            .map_err(|err| writer::Error::ReadingInputFileMetadata(input_file.host_path.clone(), err))?;
+        let metadata = input_file.host_path.metadata().map_err(|err| {
+            writer::Error::ReadingInputFileMetadata(input_file.host_path.clone(), err)
+        })?;
         let size = u32::try_from(metadata.len())
             .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
         let path = input_file.path.into_unix_path();

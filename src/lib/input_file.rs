@@ -1,12 +1,12 @@
 use std::{
-    io::{Result, Error, ErrorKind},
-    path::{Path, PathBuf, Component},
     collections::BTreeMap,
+    io::{Error, ErrorKind, Result},
+    path::{Component, Path, PathBuf},
 };
 
+use crate::FileType;
 use glob::Pattern;
 use walkdir::WalkDir;
-use crate::FileType;
 
 pub struct InputFile {
     pub host_path: PathBuf,
@@ -32,13 +32,18 @@ impl InputFileListBuilder {
     }
 
     pub fn add_dir(mut self, dir: &Path) -> Result<Self> {
-        let dir = dir.canonicalize()
-            .map_err(|err| Error::new(ErrorKind::InvalidFilename, format!("failed to resolve directory path: {err}")))?;
+        let dir = dir.canonicalize().map_err(|err| {
+            Error::new(
+                ErrorKind::InvalidFilename,
+                format!("failed to resolve directory path: {err}"),
+            )
+        })?;
 
         for entry_result in WalkDir::new(&dir) {
             let entry = entry_result?;
             let host_path = entry.into_path();
-            let path = host_path.strip_prefix(&dir)
+            let path = host_path
+                .strip_prefix(&dir)
                 .expect("should be able to strip path prefix");
 
             if path.to_string_lossy() == "" {
@@ -46,19 +51,28 @@ impl InputFileListBuilder {
             }
 
             if host_path.is_file() {
-                self.file_list.insert(path.to_path_buf(), InputFile {
-                    path: path.to_path_buf(),
-                    host_path,
-                    file_type: FileType::RegularFile,
-                });
+                self.file_list.insert(
+                    path.to_path_buf(),
+                    InputFile {
+                        path: path.to_path_buf(),
+                        host_path,
+                        file_type: FileType::RegularFile,
+                    },
+                );
             } else if host_path.is_dir() {
-                self.file_list.insert(path.to_path_buf(), InputFile {
-                    path: path.to_path_buf(),
-                    host_path,
-                    file_type: FileType::Directory,
-                });
+                self.file_list.insert(
+                    path.to_path_buf(),
+                    InputFile {
+                        path: path.to_path_buf(),
+                        host_path,
+                        file_type: FileType::Directory,
+                    },
+                );
             } else {
-                return Err(Error::new(ErrorKind::InvalidInput, format!("failed to add {0}: invalid file type", host_path.display())));
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    format!("failed to add {0}: invalid file type", host_path.display()),
+                ));
             }
         }
 
@@ -83,7 +97,9 @@ impl IntoUnixPath for Path {
         for cmp in self.components() {
             match cmp {
                 Component::Normal(name) => {
-                    let utf8_name = name.to_str().expect("should be able to convert file name to utf8 string");
+                    let utf8_name = name
+                        .to_str()
+                        .expect("should be able to convert file name to utf8 string");
                     components.push(utf8_name);
                 }
                 _ => {
@@ -98,13 +114,14 @@ impl IntoUnixPath for Path {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use crate::{FileType, IntoUnixPath};
+    use std::path::Path;
 
     #[test]
     fn input_file_list_builder() {
         let files = super::InputFileListBuilder::new()
-            .add_dir(std::path::Path::new("./samples/unpacked")).unwrap()
+            .add_dir(std::path::Path::new("./samples/unpacked"))
+            .unwrap()
             .build();
 
         assert_eq!(files[0].file_type, FileType::Directory);

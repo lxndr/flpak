@@ -6,7 +6,7 @@ use std::{
 };
 
 use super::{common::BSA_SIGNATURE, hash::Hash};
-use crate::{InputFileList, FileType, WriteEx, writer, IntoUnixPath};
+use crate::{writer, FileType, InputFileList, IntoUnixPath, WriteEx};
 
 struct File {
     local_path: PathBuf,
@@ -79,8 +79,9 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
 
     for file in files.iter() {
         if file.file_type == FileType::RegularFile {
-            let metadata = file.host_path.metadata()
-                .map_err(|err| writer::Error::ReadingInputFileMetadata(file.host_path.clone(), err))?;
+            let metadata = file.host_path.metadata().map_err(|err| {
+                writer::Error::ReadingInputFileMetadata(file.host_path.clone(), err)
+            })?;
             let size = u32::try_from(metadata.len())
                 .map_err(|_| writer::Error::InputFileLarger4GiB(file.host_path.clone()))?;
             let path = file.path.into_unix_path().to_ascii_lowercase();

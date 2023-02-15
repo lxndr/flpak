@@ -8,7 +8,8 @@ use crate::InputFileListBuilder;
 #[test]
 fn correct() {
     let input_files = InputFileListBuilder::new()
-        .add_dir(Path::new("./samples/unpacked")).unwrap()
+        .add_dir(Path::new("./samples/unpacked"))
+        .unwrap()
         .exclude_pattern("empty_dir/.gitkeep")
         .build();
 

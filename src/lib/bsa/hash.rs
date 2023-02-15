@@ -3,7 +3,7 @@ use std::{
     io::{BufRead, Result, Write},
 };
 
-use crate::{WriteEx, ReadEx};
+use crate::{ReadEx, WriteEx};
 
 #[derive(Debug, PartialEq)]
 pub struct Hash {

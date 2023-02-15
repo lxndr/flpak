@@ -1,12 +1,7 @@
 use clap::{Parser, Subcommand};
 use std::{fs, io, path::PathBuf};
 
-use flpak::{
-    reader,
-    registry::Registry,
-    FileType,
-    InputFileListBuilder
-};
+use flpak::{reader, registry::Registry, FileType, InputFileListBuilder};
 
 #[derive(Parser)]
 #[command(about = "An archive utility", long_about = None)]

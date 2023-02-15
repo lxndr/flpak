@@ -5,10 +5,7 @@ use std::{
     result,
 };
 
-use crate::{
-    bsa, bsa2, pak, rpa, vpk,
-    writer, reader, InputFileList
-};
+use crate::{bsa, bsa2, pak, reader, rpa, vpk, writer, InputFileList};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
