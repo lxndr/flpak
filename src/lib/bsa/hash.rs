@@ -1,89 +1,106 @@
-use std::{
-    fmt,
-    io::{BufRead, Result, Write},
-};
+pub fn calc_file_name_hash(name: &str) -> u64 {
+    let filename = normalize_path(name);
 
-use crate::{ReadEx, WriteEx};
+    let (name, ext) = match filename.rfind('.') {
+        Some(pos) => (&filename[..pos], &filename[pos..]),
+        None => (filename.as_str(), ""),
+    };
 
-#[derive(Debug, PartialEq)]
-pub struct Hash {
-    pub low: u32,
-    pub high: u32,
+    let name_bytes = name.as_bytes();
+    let name_len = name_bytes.len();
+    let ext_bytes = ext.as_bytes();
+
+    let mut hash1 = calc_name_hash(name);
+    hash1 |= calc_ext_hash(ext);
+
+    let hash2: u64 = if name_len > 3 {
+        calc_slice_hash(&name_bytes[1..name_len - 2]).wrapping_add(calc_slice_hash(ext_bytes))
+    } else {
+        calc_slice_hash(ext_bytes)
+    };
+
+    (hash2 << 32) + (hash1 as u64)
 }
 
-impl Hash {
-    pub fn from_path(filepath: &str) -> Self {
-        let name = filepath.to_ascii_lowercase().replace('/', "\\");
-        let bytes = name.as_bytes();
-        let len = bytes.len();
+pub fn calc_folder_name_hash(name: &str) -> u64 {
+    let name = normalize_path(name);
+    let name_bytes = name.as_bytes();
+    let name_len = name_bytes.len();
 
-        let mid_point = len >> 1;
-        let mut low_bytes = [0u8; 4];
+    let hash1 = calc_name_hash(&name);
+    let hash2: u64 = if name_len > 3 {
+        calc_slice_hash(&name_bytes[1..name_len - 2])
+    } else {
+        0
+    };
 
-        for i in 0..mid_point {
-            low_bytes[i & 3] ^= bytes[i];
-        }
+    (hash2 << 32) + u64::from(hash1)
+}
 
-        let low = u32::from_le_bytes(low_bytes);
-        let mut high: u32 = 0;
+fn normalize_path(path: &str) -> String {
+    assert!(!path.is_empty(), "Path cannot be empty");
+    path.to_ascii_lowercase().replace('/', "\\")
+}
 
-        for (i, &byte) in bytes.iter().enumerate().take(len).skip(mid_point) {
-            let tmp = u32::from(byte) << (((i - mid_point) & 3) << 3);
-            high ^= tmp;
-            high = high.rotate_right(tmp & 0x1f);
-        }
+fn calc_name_hash(name: &str) -> u32 {
+    let bytes = name.as_bytes();
+    let len = bytes.len();
 
-        Self { low, high }
-    }
+    let mut hash: u32 = u32::from(bytes[len - 1]);
+    hash |= u32::from(if len < 3 { 0 } else { bytes[len - 2] }) << 8;
+    hash |= (len as u32) << 16;
+    hash |= u32::from(bytes[0]) << 24;
 
-    pub fn read_from<R: BufRead>(r: &mut R) -> Result<Self> {
-        Ok(Self {
-            low: r.read_u32_le()?,
-            high: r.read_u32_le()?,
-        })
-    }
+    hash
+}
 
-    pub fn write_to<W: Write>(&self, w: &mut W) -> Result<()> {
-        w.write_u32_le(self.low)?;
-        w.write_u32_le(self.high)
+fn calc_ext_hash(ext: &str) -> u32 {
+    match ext {
+        ".kf" => 0x80,
+        ".nif" => 0x8000,
+        ".dds" => 0x8080,
+        ".wav" => 0x80000000,
+        _ => 0,
     }
 }
 
-impl From<u64> for Hash {
-    fn from(val: u64) -> Self {
-        Self {
-            high: (val >> 32) as u32,
-            low: val as u32,
-        }
-    }
-}
+fn calc_slice_hash(bytes: &[u8]) -> u64 {
+    let mut hash: u64 = 0;
 
-impl From<Hash> for u64 {
-    fn from(value: Hash) -> u64 {
-        (u64::from(value.high) << 32) | u64::from(value.low)
+    for &byte in bytes {
+        hash = hash.wrapping_mul(0x1003f).wrapping_add(u64::from(byte));
     }
-}
 
-impl fmt::Display for Hash {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // FIXME: why `u64::from(self)` doesn't work?
-        write!(f, "{:08x}{:08x}", self.high, self.low)
-    }
+    hash
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn calc_filepath_hash() {
-        use super::Hash;
-
+    fn calc_file_name_hash() {
         assert_eq!(
-            Hash::from_path("meshes\\m\\probe_journeyman_01.nif"),
-            Hash::from(13497295320249402166),
+            super::calc_file_name_hash("dlcanchfrelevmachplatf01.nif"),
+            3351549684976496689,
+        );
+        assert_eq!(super::calc_file_name_hash("go.nif"), 10578188054420422767,);
+    }
+
+    #[test]
+    fn calc_folder_name_hash() {
+        assert_eq!(
+            super::calc_folder_name_hash(&String::from(
+                "sound\\voice\\hearthfires.esm\\femaleelfhaughty"
+            )),
+            18022389080945785,
+        );
+        assert_eq!(super::calc_folder_name_hash(&String::from("x")), 2013331576,);
+        assert_eq!(
+            super::calc_folder_name_hash(&String::from("xx")),
+            2013397112,
         );
         assert_eq!(
-            Hash::from_path("textures\\menu_rightbuttonup_bottom.dds"),
-            Hash::from(1799937604540321103),
+            super::calc_folder_name_hash(&String::from("xxx")),
+            2013493368,
         );
     }
 }

@@ -5,7 +5,7 @@ use std::{
     result,
 };
 
-use crate::{bsa, bsa2, pak, reader, rpa, vpk, writer, InputFileList};
+use crate::{bsa_mw, bsa, pak, reader, rpa, vpk, writer, InputFileList};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -46,19 +46,19 @@ impl Registry {
     pub fn new() -> Self {
         let formats = vec![
             FormatDesc {
-                name: "bsa",
-                description: "Bethesda Archive (Morrowind)",
+                name: "bsa-mw",
+                description: "Bethesda Archive (v100)",
                 extensions: vec!["bsa"],
                 signature: vec![0x00, 0x01, 0x00, 0x00],
-                make_reader_fn: Some(bsa::make_reader),
-                writer_fn: Some(bsa::create_archive),
+                make_reader_fn: Some(bsa_mw::make_reader),
+                writer_fn: Some(bsa_mw::create_archive),
             },
             FormatDesc {
-                name: "bsa2",
-                description: "Bethesda Archive (Oblivion and later)",
+                name: "bsa",
+                description: "Bethesda Archive (v103, v104, v105)",
                 extensions: vec!["bsa"],
                 signature: b"BSA\0".to_vec(),
-                make_reader_fn: Some(bsa2::make_reader),
+                make_reader_fn: Some(bsa::make_reader),
                 writer_fn: None,
             },
             FormatDesc {
