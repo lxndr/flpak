@@ -1,13 +1,13 @@
 name: Rust
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
       - name: Install latest rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -15,13 +15,13 @@ jobs:
           default: true
           override: true
       - name: Build
-        run: cargo build --all --release && strip target/release/${PROJECT_NAME} && mv target/release/${PROJECT_NAME} target/release/${PROJECT_NAME}
+        run: cargo build --all --release && strip target/release/flpak && mv target/release/flpak target/release/flpak
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            target/release/${PROJECT_NAME}
+            target/release/flpak
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -29,7 +29,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
       - name: Install latest rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -42,6 +42,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: target/release/${PROJECT_NAME}.exe
+          files: target/release/flpak.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
