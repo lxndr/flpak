@@ -1,6 +1,13 @@
-name: Rust
+name: Main
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -15,15 +22,12 @@ jobs:
           default: true
           override: true
       - name: Build
-        run: cargo build --all --release && strip target/release/flpak && mv target/release/flpak target/release/flpak
+        run: cargo build --all --release && strip target/release/flpak
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            target/release/flpak
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: target/release/flpak
 
   build-win:
     runs-on: windows-latest
@@ -43,5 +47,3 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: target/release/flpak.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
