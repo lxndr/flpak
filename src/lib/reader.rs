@@ -50,6 +50,9 @@ pub enum Error {
     #[error("failed to read file index: {0}")]
     ReadingFileIndex(#[source] io::Error),
 
+    #[error("failed to parse file (directory) name: {0}")]
+    ReadingFileName(#[source] io::Error),
+
     #[error("not a regular file")]
     NotFile,
     #[error("{0}")]

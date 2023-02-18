@@ -63,7 +63,7 @@ impl crate::reader::Reader for Reader {
         let file = self
             .files
             .get(index)
-            .expect("`index` argument should be valid");
+            .expect("`index` should be within boundaries");
 
         crate::reader::File {
             name: file.name.clone(),
@@ -79,7 +79,7 @@ impl crate::reader::Reader for Reader {
         let file = self
             .files
             .get(index)
-            .expect("`index` argument should be valid");
+            .expect("`index` should be within boundaries");
 
         self.stm
             .seek(SeekFrom::Start(u64::from(file.offset)))

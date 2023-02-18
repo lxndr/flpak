@@ -82,7 +82,10 @@ impl crate::reader::Reader for Reader {
     }
 
     fn get_file(&self, index: usize) -> crate::reader::File {
-        let file = self.files.get(index).unwrap();
+        let file = self
+            .files
+            .get(index)
+            .expect("`index` should be within boundaries");
         let size = u64::try_from(file.preload_bytes.len()).unwrap() + u64::from(file.entry_offset);
 
         crate::reader::File {
@@ -96,7 +99,10 @@ impl crate::reader::Reader for Reader {
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
-        let file = self.files.get(index).unwrap();
+        let file = self
+            .files
+            .get(index)
+            .expect("`index` should be within boundaries");
         let mut output = file.preload_bytes.clone();
 
         if file.entry_length > 0 {

@@ -4,13 +4,14 @@ A utility to work with some random archive formats.
 
 ## Supported formats:
 
-| Format | Description                                                                            | Extension | Extracting | Creating |
-| ------ | -------------------------------------------------------------------------------------- | --------- | :--------: | :------: |
-| bsa-mw | Bethesda Archive (Morrowind)                                                           | .bsa      |     ✅      |    ✅     |
-| bsa    | Bethesda Archive (Oblivion, Fallout 3, New Vegas, Skyrim 2011, Skyrim Special Edition) | .bsa      |     ✅      |    ❌     |
-| pak    | id Software PAK                                                                        | .pak      |     ✅      |    ✅     |
-| rpa    | Ren'Py Archive                                                                         | .rpa      |     ✅      |    ✅     |
-| vpk    | Valve Pak                                                                              | .vpk      |     ✅      |    ❌     |
+| Format | Description                                                                                       | Extension | Extracting | Creating | Comment                        |
+| ------ | ------------------------------------------------------------------------------------------------- | --------- | :--------: | :------: | ------------------------------ |
+| bsa-mw | Bethesda Archive (Morrowind)                                                                      | .bsa      |     ✅      |    ✅     |
+| bsa    | Bethesda Archive (Oblivion, Fallout 3, New Vegas, Skyrim 2011, Skyrim Special Edition, Skyrim VR) | .bsa      |     ✅      |    ❌     |
+| ba2    | Bethesda Archive 2 (Fallout 4, Fallout 4 VR, Fallout 76)                                          | .ba2      |     ✅      |    ❌     | Only general archive supported |
+| pak    | id Software PAK                                                                                   | .pak      |     ✅      |    ✅     |
+| rpa    | Ren'Py Archive                                                                                    | .rpa      |     ✅      |    ✅     |
+| vpk    | Valve Pak                                                                                         | .vpk      |     ✅      |    ❌     |
 
 ## Usage
 

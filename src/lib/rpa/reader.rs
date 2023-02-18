@@ -43,7 +43,10 @@ impl crate::reader::Reader for Reader {
     }
 
     fn get_file(&self, index: usize) -> crate::reader::File {
-        let file = self.files.get(index).unwrap();
+        let file = self
+            .files
+            .get(index)
+            .expect("`index` should be within boundaries");
 
         crate::reader::File {
             name: file.name.clone(),
@@ -56,7 +59,10 @@ impl crate::reader::Reader for Reader {
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
-        let file = self.files.get(index).unwrap();
+        let file = self
+            .files
+            .get(index)
+            .expect("`index` should be within boundaries");
 
         self.stm
             .seek(SeekFrom::Start(u64::from(file.offset)))

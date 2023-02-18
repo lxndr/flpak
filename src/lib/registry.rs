@@ -5,7 +5,7 @@ use std::{
     result,
 };
 
-use crate::{bsa_mw, bsa, pak, reader, rpa, vpk, writer, InputFileList};
+use crate::{ba2, bsa, bsa_mw, pak, reader, rpa, vpk, writer, InputFileList};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -59,6 +59,14 @@ impl Registry {
                 extensions: vec!["bsa"],
                 signature: b"BSA\0".to_vec(),
                 make_reader_fn: Some(bsa::make_reader),
+                writer_fn: None,
+            },
+            FormatDesc {
+                name: "ba2",
+                description: "Bethesda Archive 2",
+                extensions: vec!["ba2"],
+                signature: b"BTDX".to_vec(),
+                make_reader_fn: Some(ba2::make_reader),
                 writer_fn: None,
             },
             FormatDesc {

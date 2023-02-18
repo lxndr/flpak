@@ -1,7 +1,8 @@
 #![feature(io_error_more)]
 
-mod bsa_mw;
+mod ba2;
 mod bsa;
+mod bsa_mw;
 mod file_type;
 mod input_file;
 mod pak;

@@ -1,4 +1,7 @@
-use std::io::{BufRead, Error, ErrorKind, Result};
+use std::{
+    io::{self, BufRead, Error, ErrorKind, Result},
+    mem, slice,
+};
 
 pub trait ReadEx: BufRead {
     #[inline]
@@ -75,6 +78,32 @@ pub trait ReadEx: BufRead {
         };
 
         Ok(s)
+    }
+
+    /// Reads a sized string.
+    /// First two bytes signify little endian 16 bit integer length of following string.
+    fn read_u16le_string(&mut self) -> Result<String> {
+        let len: usize = self
+            .read_u16_le()?
+            .try_into()
+            .expect("`u16` should fit into `usize`");
+
+        let mut name_buf = vec![0u8; len];
+        self.read_exact(&mut name_buf)?;
+
+        String::from_utf8(name_buf)
+            .map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+    }
+
+    #[inline]
+    fn read_c_struct<T: Sized>(&mut self) -> io::Result<T> {
+        Ok(unsafe {
+            let mut ptr: T = mem::zeroed();
+            let raw_size = mem::size_of::<T>();
+            let raw_slice = slice::from_raw_parts_mut(&mut ptr as *mut _ as *mut u8, raw_size);
+            self.read_exact(raw_slice)?;
+            ptr
+        })
     }
 }
 

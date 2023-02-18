@@ -145,7 +145,10 @@ impl crate::reader::Reader for Reader {
         let folder_count = self.folders.len();
 
         if index < folder_count {
-            let folder = self.folders.get(index).unwrap();
+            let folder = self
+                .folders
+                .get(index)
+                .expect("`index` should be within boundaries");
 
             crate::reader::File {
                 name: folder.name.clone(),
@@ -153,7 +156,10 @@ impl crate::reader::Reader for Reader {
                 size: None,
             }
         } else {
-            let file = self.files.get(index - folder_count).unwrap();
+            let file = self
+                .files
+                .get(index - folder_count)
+                .expect("`index` should be within boundaries");
 
             crate::reader::File {
                 name: file.name.clone(),
