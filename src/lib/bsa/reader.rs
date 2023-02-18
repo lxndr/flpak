@@ -30,7 +30,7 @@ impl Reader {
 
         if file_metadata.len() > u64::from(u32::MAX) {
             return Err(crate::reader::Error::Other(
-                "file cannot be larger than 4GiB",
+                "file cannot be larger than 4GiB".into(),
             ));
         }
 
@@ -56,7 +56,7 @@ impl Reader {
         }
 
         if options.strict && hdr.folder_records_offset != 36 {
-            return Err(crate::reader::Error::Other("invalid folder records offset"));
+            return Err(crate::reader::Error::Other("invalid folder records offset".into()));
         }
 
         let has_folder_names = (hdr.archive_flags & 0x01) != 0;

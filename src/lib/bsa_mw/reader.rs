@@ -31,7 +31,7 @@ impl Reader {
 
         if file_metadata.len() > u64::from(u32::MAX) {
             return Err(crate::reader::Error::Other(
-                "file cannot be larger than 4GiB",
+                "file cannot be larger than 4GiB".into(),
             ));
         }
 
@@ -79,7 +79,7 @@ impl Reader {
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
         if hash_table_offset < stm_pos {
-            return Err(crate::reader::Error::Other("hash table offset {hash_table_offset:010x} is incorrect, expected to be equal or greater than {stm_pos:010x}"));
+            return Err(crate::reader::Error::Other("hash table offset {hash_table_offset:010x} is incorrect, expected to be equal or greater than {stm_pos:010x}".into()));
         }
 
         stm.seek(SeekFrom::Start(hash_table_offset))

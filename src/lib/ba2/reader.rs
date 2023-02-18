@@ -42,7 +42,7 @@ impl Reader {
         }
 
         let archive_type = str::from_utf8(&hdr.archive_type)
-            .map_err(|_| crate::reader::Error::Other("invalid block type"))?;
+            .map_err(|_| crate::reader::Error::Other("invalid block type".into()))?;
 
         let mut general_files = Vec::new();
         let mut texture_files = Vec::new();
@@ -103,9 +103,9 @@ impl Reader {
         }
 
         if options.strict {
-            for (index, file) in general_files.iter().enumerate() {
+            for (_index, file) in general_files.iter().enumerate() {
                 if file.padding != 0xBAADF00D {
-                    return Err(crate::reader::Error::Other("invalid padding"));
+                    return Err(crate::reader::Error::Other("invalid padding".into()));
                 }
 
                 // let name = &names[index];

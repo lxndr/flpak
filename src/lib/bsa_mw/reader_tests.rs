@@ -4,8 +4,8 @@ use std::path::Path;
 #[test]
 fn new_reader() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/correct.bsa"),
-        crate::reader::Options { strict: false },
+        Path::new("./samples/bsa-mw/correct.bsa"),
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.ok().unwrap();
@@ -45,7 +45,7 @@ fn failed_to_open() {
 #[test]
 fn invalid_header() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_header.bsa"),
+        Path::new("./samples/bsa-mw/invalid_header.bsa"),
         crate::reader::Options { strict: false },
     );
 
@@ -59,7 +59,7 @@ fn invalid_header() {
 #[test]
 fn invalid_signature() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_signature.bsa"),
+        Path::new("./samples/bsa-mw/invalid_signature.bsa"),
         crate::reader::Options { strict: false },
     );
 
@@ -73,7 +73,7 @@ fn invalid_signature() {
 #[test]
 fn invalid_file_records() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_file_records.bsa"),
+        Path::new("./samples/bsa-mw/invalid_file_records.bsa"),
         crate::reader::Options { strict: false },
     );
 
@@ -88,7 +88,7 @@ fn invalid_file_records() {
 #[test]
 fn invalid_file_names() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_file_names.bsa"),
+        Path::new("./samples/bsa-mw/invalid_file_names.bsa"),
         crate::reader::Options { strict: false },
     );
 
@@ -99,7 +99,7 @@ fn invalid_file_names() {
 #[test]
 fn invalid_hash_records() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_hash_records.bsa"),
+        Path::new("./samples/bsa-mw/invalid_hash_records.bsa"),
         crate::reader::Options { strict: true },
     );
 
@@ -110,7 +110,7 @@ fn invalid_hash_records() {
 #[test]
 fn invalid_hashes() {
     let res = super::make_reader(
-        Path::new("./samples/bsa/invalid_hashes.bsa"),
+        Path::new("./samples/bsa-mw/invalid_hashes.bsa"),
         crate::reader::Options { strict: true },
     );
 

@@ -52,7 +52,7 @@ pub enum Error {
     OutputFileLarger4GiB,
 
     #[error("{0}")]
-    Other(&'static str),
+    Other(String),
 }
 
 pub type Result<T> = result::Result<T, Error>;

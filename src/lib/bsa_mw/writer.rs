@@ -44,7 +44,7 @@ pub fn create_archive(files: InputFileList, path: &Path) -> writer::Result<()> {
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
 
     let hash_table_offset = u32::try_from((file_count * 8) + (file_count * 4) + names.len())
-        .map_err(|_| writer::Error::Other("total size of file records exceeds 4GiB"))?;
+        .map_err(|_| writer::Error::Other("total size of file records exceeds 4GiB".into()))?;
 
     out.write_all(BSA_SIGNATURE)
         .map_err(writer::Error::WritingSignature)?;

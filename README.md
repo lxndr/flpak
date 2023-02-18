@@ -12,6 +12,7 @@ A utility to work with some random archive formats.
 | pak    | id Software PAK                                                                                   | .pak      |     ✅      |    ✅     |
 | rpa    | Ren'Py Archive                                                                                    | .rpa      |     ✅      |    ✅     |
 | vpk    | Valve Pak                                                                                         | .vpk      |     ✅      |    ❌     |
+| zip    | ZIP                                                                                               | .zip      |     ✅      |    ✅     |
 
 ## Usage
 

@@ -59,8 +59,9 @@ pub enum Error {
     Unsupported(&'static str),
     #[error("{0}: {1}")]
     Io(&'static str, io::Error),
+
     #[error("{0}")]
-    Other(&'static str),
+    Other(String),
 }
 
 pub type Result<T> = result::Result<T, Error>;
