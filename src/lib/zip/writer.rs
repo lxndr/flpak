@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    io,
-    path::Path,
-};
+use std::{fs, io, path::Path};
 
 use crate::{writer, FileType, InputFileList, IntoUnixPath};
 
@@ -22,8 +18,9 @@ pub fn create_archive(input_files: InputFileList, path: &Path) -> writer::Result
                 })?;
             }
             FileType::RegularFile => {
-                let mut file = fs::File::open(&input_file.host_path)
-                    .map_err(|err| writer::Error::OpeningInputFile(input_file.host_path.clone(), err))?;
+                let mut file = fs::File::open(&input_file.host_path).map_err(|err| {
+                    writer::Error::OpeningInputFile(input_file.host_path.clone(), err)
+                })?;
 
                 let path = input_file.path.into_unix_path();
                 let options = zip::write::FileOptions::default()

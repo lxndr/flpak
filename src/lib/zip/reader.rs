@@ -1,7 +1,7 @@
-use std::{path::Path, fs, io};
+use std::{fs, io, path::Path};
 
-use zip::ZipArchive;
 use crate::FileType;
+use zip::ZipArchive;
 
 pub struct Reader {
     zip: ZipArchive<fs::File>,
@@ -11,12 +11,15 @@ pub struct Reader {
 impl Reader {
     fn open(path: &Path, _options: crate::reader::Options) -> crate::reader::Result<Self> {
         let file = fs::File::open(path).map_err(crate::reader::Error::OpeningInputFile)?;
-        let mut zip = ZipArchive::new(file).map_err(|err| crate::reader::Error::Other(err.to_string()))?;
+        let mut zip =
+            ZipArchive::new(file).map_err(|err| crate::reader::Error::Other(err.to_string()))?;
 
         let mut files = Vec::new();
 
         for index in 0..zip.len() {
-            let file = zip.by_index(index).map_err(|err| crate::reader::Error::Other(err.to_string()))?;
+            let file = zip
+                .by_index(index)
+                .map_err(|err| crate::reader::Error::Other(err.to_string()))?;
 
             let file_type = if file.is_dir() {
                 FileType::Directory
@@ -31,10 +34,7 @@ impl Reader {
             });
         }
 
-        Ok(Self {
-            zip,
-            files,
-        })
+        Ok(Self { zip, files })
     }
 }
 
@@ -44,7 +44,10 @@ impl crate::reader::Reader for Reader {
     }
 
     fn get_file(&self, index: usize) -> crate::reader::File {
-        let file = self.files.get(index).expect("should be able to get file by index");
+        let file = self
+            .files
+            .get(index)
+            .expect("should be able to get file by index");
 
         crate::reader::File {
             name: file.name.clone(),
@@ -57,7 +60,9 @@ impl crate::reader::Reader for Reader {
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn io::Read + 'a>> {
-        let file = self.zip.by_index(index)
+        let file = self
+            .zip
+            .by_index(index)
             .expect("should be able to get file by index");
 
         Ok(Box::new(file))

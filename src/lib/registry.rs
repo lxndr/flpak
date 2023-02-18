@@ -5,7 +5,7 @@ use std::{
     result,
 };
 
-use crate::{ba2, bsa, bsa_mw, pak, reader, rpa, vpk, zip, writer, InputFileList};
+use crate::{ba2, bsa, bsa_mw, pak, reader, rpa, vpk, writer, zip, InputFileList};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -49,9 +49,7 @@ impl Registry {
                 name: "bsa-mw",
                 description: "Bethesda Archive (v100)",
                 extensions: vec!["bsa"],
-                signatures: vec![
-                    vec![0x00, 0x01, 0x00, 0x00],
-                ],
+                signatures: vec![vec![0x00, 0x01, 0x00, 0x00]],
                 make_reader_fn: Some(bsa_mw::make_reader),
                 writer_fn: Some(bsa_mw::create_archive),
             },
@@ -59,9 +57,7 @@ impl Registry {
                 name: "bsa",
                 description: "Bethesda Archive (v103, v104, v105)",
                 extensions: vec!["bsa"],
-                signatures: vec![
-                    b"BSA\0".to_vec(),
-                ],
+                signatures: vec![b"BSA\0".to_vec()],
                 make_reader_fn: Some(bsa::make_reader),
                 writer_fn: None,
             },
@@ -69,9 +65,7 @@ impl Registry {
                 name: "ba2",
                 description: "Bethesda Archive 2",
                 extensions: vec!["ba2"],
-                signatures: vec![
-                    b"BTDX".to_vec(),
-                ],
+                signatures: vec![b"BTDX".to_vec()],
                 make_reader_fn: Some(ba2::make_reader),
                 writer_fn: None,
             },
@@ -79,9 +73,7 @@ impl Registry {
                 name: "pak",
                 description: "id Software .pak",
                 extensions: vec!["vpk"],
-                signatures: vec![
-                    b"PACK".to_vec(),
-                ],
+                signatures: vec![b"PACK".to_vec()],
                 make_reader_fn: Some(pak::make_reader),
                 writer_fn: Some(pak::create_archive),
             },
@@ -89,9 +81,7 @@ impl Registry {
                 name: "rpa",
                 description: "Ren'Py Archive",
                 extensions: vec!["rpa"],
-                signatures: vec![
-                    b"RPA-".to_vec(),
-                ],
+                signatures: vec![b"RPA-".to_vec()],
                 make_reader_fn: Some(rpa::make_reader),
                 writer_fn: Some(rpa::create_archive),
             },
@@ -99,9 +89,7 @@ impl Registry {
                 name: "vpk",
                 description: "Valve Pack",
                 extensions: vec!["vpk"],
-                signatures: vec![
-                    vec![0x34, 0x12, 0xAA, 0x55],
-                ],
+                signatures: vec![vec![0x34, 0x12, 0xAA, 0x55]],
                 make_reader_fn: Some(vpk::make_reader),
                 writer_fn: None,
             },
@@ -180,7 +168,9 @@ impl Registry {
 
     #[must_use]
     pub fn find_format_by_signature(&self, buf: &[u8]) -> Option<&FormatDesc> {
-        self.formats.iter().find(|f| f.signatures.iter().find(|&sig| sig == buf).is_some())
+        self.formats
+            .iter()
+            .find(|f| f.signatures.iter().find(|&sig| sig == buf).is_some())
     }
 }
 

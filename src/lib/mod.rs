@@ -12,9 +12,9 @@ pub mod registry;
 mod rpa;
 pub mod utils;
 mod vpk;
-mod zip;
 mod write_ex;
 pub mod writer;
+mod zip;
 
 pub use file_type::*;
 pub use input_file::*;

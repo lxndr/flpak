@@ -17,7 +17,7 @@ fn correct() {
     let output_path = dir.path().join("archive.zip");
     let res = super::create_archive(input_files, &output_path);
     assert!(res.is_ok());
-    
+
     let mut file = fs::File::open(&output_path).unwrap();
     let mut hasher = Sha1::new();
     io::copy(&mut file, &mut hasher).unwrap();

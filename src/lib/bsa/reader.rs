@@ -56,7 +56,9 @@ impl Reader {
         }
 
         if options.strict && hdr.folder_records_offset != 36 {
-            return Err(crate::reader::Error::Other("invalid folder records offset".into()));
+            return Err(crate::reader::Error::Other(
+                "invalid folder records offset".into(),
+            ));
         }
 
         let has_folder_names = (hdr.archive_flags & 0x01) != 0;
