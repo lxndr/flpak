@@ -1,19 +1,19 @@
-#![feature(io_error_more)]
-
-mod ba2;
-mod bsa;
-mod bsa_mw;
 mod file_type;
 mod input_file;
-mod pak;
 mod read_ex;
 pub mod reader;
 pub mod registry;
-mod rpa;
 pub mod utils;
-mod vpk;
 mod write_ex;
 pub mod writer;
+
+// formats
+mod ba2;
+mod bsa;
+mod bsa_mw;
+mod pak;
+mod rpa;
+mod vpk;
 mod zip;
 
 pub use file_type::*;

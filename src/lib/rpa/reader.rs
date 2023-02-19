@@ -17,8 +17,7 @@ impl Reader {
         let file = fs::File::open(path).map_err(crate::reader::Error::OpeningInputFile)?;
         let mut stm = BufReader::new(file);
 
-        let hdr = Header::read(&mut stm)
-            .map_err(|err| crate::reader::Error::Io("failed to read file's header", err))?;
+        let hdr = Header::read(&mut stm).map_err(crate::reader::Error::ReadingHeader)?;
 
         if hdr.signature != "RPA-3.0" {
             return Err(crate::reader::Error::InvalidStringSignature {
@@ -30,15 +29,15 @@ impl Reader {
         stm.seek(SeekFrom::Start(hdr.index_offset))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
-        let files = read_file_index(&mut stm, hdr.key)
-            .map_err(|err| crate::reader::Error::Io("failed to read file index", err))?;
+        let files =
+            read_file_index(&mut stm, hdr.key).map_err(crate::reader::Error::ReadingFileIndex)?;
 
         Ok(Reader { stm, files })
     }
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         self.files.len()
     }
 
@@ -55,7 +54,7 @@ impl crate::reader::Reader for Reader {
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {

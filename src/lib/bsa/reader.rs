@@ -36,7 +36,7 @@ impl Reader {
 
         let mut signature = [0u8; 4];
         stm.read_exact(&mut signature)
-            .map_err(|err| crate::reader::Error::Io("failed to read file signature", err))?;
+            .map_err(crate::reader::Error::ReadingSignature)?;
 
         if !signature.eq(BSA_SIGNATURE) {
             return Err(crate::reader::Error::InvalidSignature {
@@ -45,8 +45,7 @@ impl Reader {
             });
         }
 
-        let hdr = Header::read(&mut stm)
-            .map_err(|err| crate::reader::Error::Io("failed to read file header", err))?;
+        let hdr = Header::read(&mut stm).map_err(crate::reader::Error::ReadingHeader)?;
 
         if !VALID_VERSIONS.contains(&hdr.version) {
             return Err(crate::reader::Error::UnsupportedVersion {
@@ -74,7 +73,7 @@ impl Reader {
 
         let mut folders =
             read_folder_records(&mut stm, hdr.folder_count, hdr.version, is_big_endian)
-                .map_err(|err| crate::reader::Error::Io("failed to read folder records", err))?;
+                .map_err(crate::reader::Error::ReadingFileIndex)?;
 
         let mut files = read_file_records(
             &mut stm,
@@ -84,7 +83,7 @@ impl Reader {
             is_big_endian,
             hdr.total_file_name_length,
         )
-        .map_err(|err| crate::reader::Error::Io("failed to read file records", err))?;
+        .map_err(crate::reader::Error::ReadingFileIndex)?;
 
         read_file_names(
             &mut stm,
@@ -92,10 +91,10 @@ impl Reader {
             has_file_names,
             hdr.total_file_name_length,
         )
-        .map_err(|err| crate::reader::Error::Io("failed to read file names", err))?;
+        .map_err(crate::reader::Error::ReadingFileName)?;
 
         read_file_blocks(&mut stm, &mut files, embed_file_names, is_big_endian)
-            .map_err(|err| crate::reader::Error::Io("failed to read file names", err))?;
+            .map_err(crate::reader::Error::ReadingFileName)?;
 
         if options.strict {
             for folder in &folders {
@@ -139,7 +138,7 @@ impl Reader {
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         self.folders.len() + self.files.len()
     }
 
@@ -171,7 +170,7 @@ impl crate::reader::Reader for Reader {
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
@@ -191,13 +190,13 @@ impl crate::reader::Reader for Reader {
 
         if file.compressed {
             return Err(crate::reader::Error::Unsupported(
-                "compressed files are not supported",
+                "compressed files are not supported".into(),
             ));
         }
 
         if self.xmem_codec {
             return Err(crate::reader::Error::Unsupported(
-                "xmem compression are not supported",
+                "xmem compression are not supported".into(),
             ));
         }
 

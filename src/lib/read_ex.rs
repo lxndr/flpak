@@ -95,6 +95,17 @@ pub trait ReadEx: BufRead {
             .map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
     }
 
+    fn read_u32_le_vec(&mut self, count: usize) -> io::Result<Vec<u32>> {
+        let mut v = Vec::new();
+
+        for _ in 0..count {
+            let item = self.read_u32_le()?;
+            v.push(item);
+        }
+
+        Ok(v)
+    }
+
     #[inline]
     fn read_c_struct<T: Sized>(&mut self) -> io::Result<T> {
         Ok(unsafe {
@@ -104,6 +115,18 @@ pub trait ReadEx: BufRead {
             self.read_exact(raw_slice)?;
             ptr
         })
+    }
+
+    #[inline]
+    fn read_c_struct_vec<T: Sized>(&mut self, count: usize) -> io::Result<Vec<T>> {
+        let mut vec = Vec::with_capacity(count);
+
+        for _ in 0..count {
+            let val = self.read_c_struct()?;
+            vec.push(val);
+        }
+
+        Ok(vec)
     }
 }
 

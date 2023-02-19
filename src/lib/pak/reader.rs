@@ -55,7 +55,7 @@ impl Reader {
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         self.files.len()
     }
 
@@ -72,7 +72,7 @@ impl crate::reader::Reader for Reader {
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn io::Read + 'a>> {

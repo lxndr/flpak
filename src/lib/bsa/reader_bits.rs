@@ -1,8 +1,9 @@
-use crate::ReadEx;
 use std::{
     fs,
     io::{BufRead, BufReader, Error, ErrorKind, Read, Result, Seek, SeekFrom},
 };
+
+use crate::ReadEx;
 
 pub struct Header {
     pub version: u32,
@@ -42,19 +43,19 @@ pub fn read_folder_records(
     r: &mut BufReader<fs::File>,
     folder_count: u32,
     version: u32,
-    is_big_endian: bool,
+    big_endian: bool,
 ) -> Result<Vec<Folder>> {
     let mut folders = Vec::new();
 
     for _ in 0..folder_count {
-        let name_hash = r.read_u64(is_big_endian)?;
-        let file_count = r.read_u32(is_big_endian)?;
+        let name_hash = r.read_u64(big_endian)?;
+        let file_count = r.read_u32(big_endian)?;
 
         if version == 105 {
             r.seek_relative(4)?; // padding
         }
 
-        let offset = r.read_u32(is_big_endian)?;
+        let offset = r.read_u32(big_endian)?;
 
         if version == 105 {
             r.seek_relative(4)?; // padding
@@ -85,7 +86,7 @@ pub fn read_file_records(
     folders: &mut Vec<Folder>,
     has_folder_names: bool,
     compressed_by_default: bool,
-    is_big_endian: bool,
+    big_endian: bool,
     total_file_name_length: u32,
 ) -> Result<Vec<File>> {
     let mut files = Vec::new();
@@ -101,9 +102,9 @@ pub fn read_file_records(
         }
 
         for _ in 0..folder.file_count {
-            let name_hash = r.read_u64(is_big_endian)?;
-            let mut size = r.read_u32(is_big_endian)?;
-            let offset = r.read_u32(is_big_endian)?;
+            let name_hash = r.read_u64(big_endian)?;
+            let mut size = r.read_u32(big_endian)?;
+            let offset = r.read_u32(big_endian)?;
             let mut compressed = compressed_by_default;
 
             if size & 0x40000000 != 0 {
@@ -150,7 +151,7 @@ pub fn read_file_blocks(
     r: &mut BufReader<fs::File>,
     files: &mut Vec<File>,
     embed_file_names: bool,
-    is_big_endian: bool,
+    big_endian: bool,
 ) -> Result<()> {
     for file in files {
         r.seek(SeekFrom::Start(u64::from(file.offset)))?;
@@ -161,7 +162,7 @@ pub fn read_file_blocks(
         }
 
         if file.compressed {
-            file.original_size = r.read_u32(is_big_endian)?;
+            file.original_size = r.read_u32(big_endian)?;
         }
     }
 

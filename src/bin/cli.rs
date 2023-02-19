@@ -98,7 +98,7 @@ fn main() -> std::io::Result<()> {
                 .create_reader(format, &input_file, reader::Options { strict: true })
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
 
-            for index in 0..rdr.len() {
+            for index in 0..rdr.file_count() {
                 let reader::File {
                     name, file_type, ..
                 } = rdr.get_file(index);
@@ -109,7 +109,7 @@ fn main() -> std::io::Result<()> {
                             println!("Checking {}...", name);
                         }
 
-                        let mut stm = rdr.open_file_by_index(index).map_err(|err| {
+                        let mut stm = rdr.create_file_reader(index).map_err(|err| {
                             io::Error::new(
                                 io::ErrorKind::Other,
                                 format!("failed to open archived file '{}': {}", name, err),
@@ -152,7 +152,7 @@ fn main() -> std::io::Result<()> {
                     )
                 })?;
 
-            for index in 0..rdr.len() {
+            for index in 0..rdr.file_count() {
                 let reader::File {
                     name,
                     file_type,
@@ -193,15 +193,17 @@ fn main() -> std::io::Result<()> {
                     )
                 })?;
 
-            for index in 0..rdr.len() {
-                let reader::File {
-                    name, file_type, ..
+            for index in 0..rdr.file_count() {
+                let crate::reader::File {
+                    file_type,
+                    name,
+                    size: _size,
                 } = rdr.get_file(index);
 
                 match file_type {
                     FileType::RegularFile => {
                         if args.verbose {
-                            println!("Extracting {name}...");
+                            println!("Extracting {name}... ");
                         }
 
                         let file_path = output_dir.join(&name);
@@ -215,7 +217,7 @@ fn main() -> std::io::Result<()> {
                             })?;
                         }
 
-                        let mut input_reader = rdr.open_file_by_index(index).map_err(|err| {
+                        let mut input_reader = rdr.create_file_reader(index).map_err(|err| {
                             io::Error::new(
                                 io::ErrorKind::Other,
                                 format!("failed to extract file '{}': failed to read archived file '{}': {}", name, input_file.display(), err),
@@ -242,6 +244,10 @@ fn main() -> std::io::Result<()> {
                         })?;
                     }
                     FileType::Directory => {
+                        if args.verbose {
+                            println!("Creating directory {name}... ");
+                        }
+
                         let dir_path = output_dir.join(&name);
                         std::fs::create_dir_all(&dir_path).map_err(|err| {
                             io::Error::new(

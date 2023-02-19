@@ -1,119 +1,106 @@
-use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::path::Path;
-use std::{fs, io};
-
-use super::{
-    common::{BSA_HEADER_SIZE, BSA_SIGNATURE},
-    hash::Hash,
-    reader_bits::{read_names, FileRecord, Header},
+use std::{
+    fs, io,
+    io::{Read, Seek, SeekFrom},
+    path::Path,
 };
 
 use crate::FileType;
 
-struct File {
+use super::{
+    hash::Hash,
+    records::{read_file_index, read_file_names, Header, BSA_SIGNATURE},
+};
+
+struct FileEntry {
     name: String,
     size: u32,
     offset: u32,
 }
 
 pub struct Reader {
-    stm: BufReader<fs::File>,
-    files: Vec<File>,
+    file: fs::File,
+    files: Vec<FileEntry>,
     data_offset: u64,
 }
 
 impl Reader {
     fn open(path: &Path, options: crate::reader::Options) -> crate::reader::Result<Self> {
         let file = fs::File::open(path).map_err(crate::reader::Error::OpeningInputFile)?;
-        let file_metadata = file
-            .metadata()
-            .map_err(crate::reader::Error::ReadingInputFileMetadata)?;
-
-        if file_metadata.len() > u64::from(u32::MAX) {
-            return Err(crate::reader::Error::Other(
-                "file cannot be larger than 4GiB".into(),
-            ));
-        }
-
-        let mut stm = BufReader::new(file);
+        let mut rdr = io::BufReader::new(file);
 
         // header
-        let hdr = Header::read(&mut stm)
-            .map_err(|err| crate::reader::Error::Io("failed to read file's header", err))?;
+        let hdr = Header::read(&mut rdr).map_err(crate::reader::Error::ReadingHeader)?;
 
-        if !hdr.signature.eq(BSA_SIGNATURE) {
+        if hdr.signature != BSA_SIGNATURE {
             return Err(crate::reader::Error::InvalidSignature {
                 signature: hdr.signature,
-                expected_signature: BSA_SIGNATURE,
+                expected_signature: &BSA_SIGNATURE,
             });
         }
 
-        let hash_table_offset = u64::from(hdr.hash_table_offset + BSA_HEADER_SIZE);
-        let file_count = usize::try_from(hdr.file_count).unwrap();
+        let hash_table_offset = hdr.absolute_hash_table_offset();
+        let file_count = usize::try_from(hdr.file_count).expect("should fit into `usize`");
 
-        // files
-        let mut files = Vec::with_capacity(file_count);
+        // file records
+        let file_index = read_file_index(&mut rdr, file_count)
+            .map_err(crate::reader::Error::ReadingFileIndex)?;
 
-        for _ in 0..file_count {
-            let FileRecord { size, offset } = FileRecord::read(&mut stm)
-                .map_err(|err| crate::reader::Error::Io("failed to read file record", err))?;
-
-            files.push(File {
-                name: String::new(),
-                size,
-                offset,
-            });
-        }
-
-        // names
-        let names = read_names(&mut stm, file_count, hash_table_offset)
-            .map_err(|err| crate::reader::Error::Io("failed to read file names", err))?;
-
-        for (file, name) in files.iter_mut().zip(names) {
-            file.name = name;
-        }
+        // file names
+        let names = read_file_names(&mut rdr, &hdr, file_count)
+            .map_err(crate::reader::Error::ReadingFileName)?;
 
         // hashes
-        let stm_pos = stm
+        let rdr_pos = rdr
             .stream_position()
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
-        if hash_table_offset < stm_pos {
+        if hash_table_offset < rdr_pos {
             return Err(crate::reader::Error::Other("hash table offset {hash_table_offset:010x} is incorrect, expected to be equal or greater than {stm_pos:010x}".into()));
         }
 
-        stm.seek(SeekFrom::Start(hash_table_offset))
+        rdr.seek(SeekFrom::Start(hash_table_offset))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
         if options.strict {
-            for file in &files {
+            for name in &names {
                 let hash =
-                    Hash::read_from(&mut stm).map_err(crate::reader::Error::ReadingInputFile)?;
-                let expected_hash = Hash::from_path(&file.name);
+                    Hash::read_from(&mut rdr).map_err(crate::reader::Error::ReadingInputFile)?;
+                let expected_hash = Hash::from_path(&name);
 
                 if hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {
-                        filename: file.name.clone(),
+                        filename: name.clone(),
                         hash: hash.to_string(),
                         expected_hash: expected_hash.to_string(),
                     });
                 }
             }
         } else {
-            stm.seek_relative((file_count * 8) as i64)
+            rdr.seek_relative((file_count * 8) as i64)
                 .map_err(crate::reader::Error::ReadingInputFile)?;
         }
 
-        // sort by offset
-        files.sort_by_key(|f| f.offset);
+        // files
+        let mut files: Vec<FileEntry> = file_index
+            .iter()
+            .zip(&names)
+            .map(|(rec, name)| FileEntry {
+                name: name.clone(),
+                size: rec.size,
+                offset: rec.offset,
+            })
+            .collect();
+
+        // sort by offset for easier continuos extraction
+        files.sort_unstable_by_key(|f| f.offset);
 
         // data offset
-        let data_offset = stm
+        let data_offset = rdr
             .stream_position()
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
         Ok(Reader {
-            stm,
+            file: rdr.into_inner(),
             files,
             data_offset,
         })
@@ -121,7 +108,7 @@ impl Reader {
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         self.files.len()
     }
 
@@ -134,11 +121,11 @@ impl crate::reader::Reader for Reader {
         crate::reader::File {
             name: file.name.clone(),
             file_type: FileType::RegularFile,
-            size: Some(u64::from(file.size)),
+            size: Some(file.size.into()),
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn io::Read + 'a>> {
@@ -146,13 +133,11 @@ impl crate::reader::Reader for Reader {
             .files
             .get(index)
             .expect("`index` should be within boundaries");
-
-        self.stm
+        self.file
             .seek(SeekFrom::Start(self.data_offset + u64::from(file.offset)))
             .map_err(crate::reader::Error::ReadingInputFile)?;
-
-        let stm = self.stm.by_ref().take(u64::from(file.size));
-        Ok(Box::new(stm))
+        let rdr = self.file.by_ref().take(file.size.into());
+        Ok(Box::new(rdr))
     }
 }
 

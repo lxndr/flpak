@@ -34,7 +34,8 @@ impl InputFileListBuilder {
     pub fn add_dir(mut self, dir: &Path) -> Result<Self> {
         let dir = dir.canonicalize().map_err(|err| {
             Error::new(
-                ErrorKind::InvalidFilename,
+                // FIXME: ErrorKind::InvalidFilename,
+                ErrorKind::Other,
                 format!("failed to resolve directory path: {err}"),
             )
         })?;

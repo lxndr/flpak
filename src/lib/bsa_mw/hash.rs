@@ -45,7 +45,8 @@ impl Hash {
 
     pub fn write_to<W: Write>(&self, w: &mut W) -> Result<()> {
         w.write_u32_le(self.low)?;
-        w.write_u32_le(self.high)
+        w.write_u32_le(self.high)?;
+        Ok(())
     }
 }
 
@@ -58,8 +59,8 @@ impl From<u64> for Hash {
     }
 }
 
-impl From<Hash> for u64 {
-    fn from(value: Hash) -> u64 {
+impl From<&Hash> for u64 {
+    fn from(value: &Hash) -> u64 {
         (u64::from(value.high) << 32) | u64::from(value.low)
     }
 }

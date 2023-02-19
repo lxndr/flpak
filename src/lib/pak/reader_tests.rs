@@ -9,5 +9,5 @@ fn new_reader() {
     );
 
     let rdr = res.ok().unwrap();
-    assert_eq!(rdr.len(), 5);
+    assert_eq!(rdr.file_count(), 5);
 }

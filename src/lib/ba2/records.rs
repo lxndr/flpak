@@ -28,7 +28,6 @@ impl Header {
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct GeneralBlock {
     pub name_hash: u32,
     pub ext: [u8; 4],

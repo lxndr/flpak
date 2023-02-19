@@ -1,11 +1,14 @@
 use std::{
     collections::BTreeMap,
     fs,
-    io::{self, Cursor, Write},
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 
-use super::{common::BSA_SIGNATURE, hash::Hash};
+use super::{
+    hash::Hash,
+    records::{FileRecord, Header},
+};
 use crate::{writer, FileType, InputFileList, IntoUnixPath, WriteEx};
 
 struct File {
@@ -23,44 +26,33 @@ pub fn create_archive(files: InputFileList, path: &Path) -> writer::Result<()> {
 
     // file names and hashes
     let mut names = String::new();
-    let mut name_offsets = vec![0; file_count * 4];
-    let mut name_offsets_cursor = Cursor::new(&mut name_offsets);
-    let mut hash_buffer = vec![0; file_count * 8];
-    let mut hash_buffer_cursor = Cursor::new(&mut hash_buffer);
+    let mut name_offsets = Vec::with_capacity(file_count);
+    let mut hash_buffer = Vec::with_capacity(file_count);
 
     for &input_file in input_files_by_hash.values() {
-        let name_offset = names.len() as u32;
-        name_offsets_cursor
-            .write_u32_le(name_offset)
-            .expect("writing to memory buffer");
+        let name_offset: u32 = names.len().try_into().expect("should fit into `u32`");
+        name_offsets.push(name_offset);
         names.push_str(&input_file.archive_path.replace('/', "\\"));
         names.push('\0');
-        input_file
-            .hash
-            .write_to(&mut hash_buffer_cursor)
-            .expect("writing to memory buffer");
+        hash_buffer.push(u64::from(&input_file.hash));
     }
 
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
 
     let hash_table_offset = u32::try_from((file_count * 8) + (file_count * 4) + names.len())
         .map_err(|_| writer::Error::Other("total size of file records exceeds 4GiB".into()))?;
-
-    out.write_all(BSA_SIGNATURE)
-        .map_err(writer::Error::WritingSignature)?;
-    write_header(&mut out, hash_table_offset, file_count as u32)
-        .map_err(writer::Error::WritingHeader)?;
+    Header::write(&mut out, hash_table_offset, file_count).map_err(writer::Error::WritingHeader)?;
 
     for &input_file in input_files_by_hash.values() {
-        write_file_record(&mut out, input_file.size, input_file.offset)
+        FileRecord::write(&mut out, input_file.size, input_file.offset)
             .map_err(writer::Error::WritingFileIndex)?;
     }
 
-    out.write_all(&name_offsets)
+    out.write_u32_le_vec(&name_offsets)
         .map_err(writer::Error::WritingFileIndex)?;
     out.write_all(names.as_bytes())
         .map_err(writer::Error::WritingFileIndex)?;
-    out.write_all(&hash_buffer)
+    out.write_u64_le_vec(&hash_buffer)
         .map_err(writer::Error::WritingFileIndex)?;
 
     for input_file in &input_files {
@@ -109,6 +101,8 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
         }
     }
 
+    input_files.sort_unstable_by(|a, b| a.archive_path.cmp(&b.archive_path));
+
     Ok(input_files)
 }
 
@@ -130,18 +124,4 @@ fn create_hash_map(files: &[File]) -> writer::Result<BTreeMap<u64, &File>> {
     }
 
     Ok(map)
-}
-
-#[inline]
-fn write_header(r: &mut impl Write, hash_table_offset: u32, file_count: u32) -> io::Result<()> {
-    r.write_u32_le(hash_table_offset)?;
-    r.write_u32_le(file_count as u32)?;
-    Ok(())
-}
-
-#[inline]
-fn write_file_record(r: &mut impl Write, size: u32, offset: u32) -> io::Result<()> {
-    r.write_u32_le(size)?;
-    r.write_u32_le(offset)?;
-    Ok(())
 }

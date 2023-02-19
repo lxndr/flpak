@@ -51,6 +51,22 @@ pub trait WriteEx: Write {
         self.write_all(&ZSTRING_TERMINATOR)?;
         Ok(())
     }
+
+    fn write_u32_le_vec(&mut self, vec: &[u32]) -> Result<()> {
+        for &val in vec {
+            self.write_u32_le(val)?;
+        }
+
+        Ok(())
+    }
+
+    fn write_u64_le_vec(&mut self, vec: &[u64]) -> Result<()> {
+        for &val in vec {
+            self.write_u64_le(val)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl<R: Write + ?Sized> WriteEx for R {}

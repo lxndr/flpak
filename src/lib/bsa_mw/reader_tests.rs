@@ -2,7 +2,7 @@ use crate::FileType;
 use std::path::Path;
 
 #[test]
-fn new_reader() {
+fn correct() {
     let res = super::make_reader(
         Path::new("./samples/bsa-mw/correct.bsa"),
         crate::reader::Options { strict: true },
@@ -10,7 +10,7 @@ fn new_reader() {
 
     let rdr = res.ok().unwrap();
 
-    assert_eq!(rdr.len(), 6);
+    assert_eq!(rdr.file_count(), 5);
 
     let file = rdr.get_file(0);
     assert_eq!(file.file_type, FileType::RegularFile);
@@ -24,15 +24,15 @@ fn new_reader() {
 
     let file = rdr.get_file(2);
     assert_eq!(file.file_type, FileType::RegularFile);
-    assert_eq!(file.name, "img001.png");
-    assert_eq!(file.size.unwrap(), 22290);
+    assert_eq!(file.name, "file001.txt");
+    assert_eq!(file.size.unwrap(), 47);
 }
 
 #[test]
 fn failed_to_open() {
     let res = super::make_reader(
         Path::new("./samples/bsa/none.bsa"),
-        crate::reader::Options { strict: false },
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.err().unwrap();
@@ -46,13 +46,13 @@ fn failed_to_open() {
 fn invalid_header() {
     let res = super::make_reader(
         Path::new("./samples/bsa-mw/invalid_header.bsa"),
-        crate::reader::Options { strict: false },
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.err().unwrap();
     assert_eq!(
         rdr.to_string(),
-        "failed to read file's header: failed to fill whole buffer"
+        "failed to read file header: failed to fill whole buffer"
     );
 }
 
@@ -60,7 +60,7 @@ fn invalid_header() {
 fn invalid_signature() {
     let res = super::make_reader(
         Path::new("./samples/bsa-mw/invalid_signature.bsa"),
-        crate::reader::Options { strict: false },
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.err().unwrap();
@@ -74,13 +74,13 @@ fn invalid_signature() {
 fn invalid_file_records() {
     let res = super::make_reader(
         Path::new("./samples/bsa-mw/invalid_file_records.bsa"),
-        crate::reader::Options { strict: false },
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.err().unwrap();
     assert_eq!(
         rdr.to_string(),
-        "failed to read file record: failed to fill whole buffer"
+        "failed to read file index: failed to fill whole buffer"
     );
 }
 
@@ -89,7 +89,7 @@ fn invalid_file_records() {
 fn invalid_file_names() {
     let res = super::make_reader(
         Path::new("./samples/bsa-mw/invalid_file_names.bsa"),
-        crate::reader::Options { strict: false },
+        crate::reader::Options { strict: true },
     );
 
     let rdr = res.err().unwrap();

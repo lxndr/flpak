@@ -1,4 +1,4 @@
-use std::{io, result};
+use std::{collections::HashMap, io, result};
 
 use crate::FileType;
 
@@ -55,10 +55,9 @@ pub enum Error {
 
     #[error("not a regular file")]
     NotFile,
+
     #[error("{0}")]
-    Unsupported(&'static str),
-    #[error("{0}: {1}")]
-    Io(&'static str, io::Error),
+    Unsupported(String),
 
     #[error("{0}")]
     Other(String),
@@ -78,7 +77,11 @@ pub struct Options {
 }
 
 pub trait Reader {
-    fn len(&self) -> usize;
+    fn file_count(&self) -> usize;
     fn get_file(&self, index: usize) -> File;
-    fn open_file_by_index<'a>(&'a mut self, index: usize) -> Result<Box<dyn io::Read + 'a>>;
+    fn create_file_reader<'a>(&'a mut self, index: usize) -> Result<Box<dyn io::Read + 'a>>;
+
+    fn attrs(&self) -> HashMap<String, String> {
+        HashMap::new()
+    }
 }

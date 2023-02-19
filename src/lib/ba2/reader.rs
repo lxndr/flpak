@@ -74,12 +74,12 @@ impl Reader {
                 }
 
                 return Err(crate::reader::Error::Unsupported(
-                    "texture archives are not supported",
+                    "texture archives are not supported".into(),
                 ));
             }
             "GNMF" => {
                 return Err(crate::reader::Error::Unsupported(
-                    "GNMF archives are not supported",
+                    "GNMF archives are not supported".into(),
                 ));
             }
             _ => {
@@ -126,7 +126,7 @@ impl Reader {
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         let len = self.general_files.len();
 
         if len > 0 {
@@ -162,7 +162,7 @@ impl crate::reader::Reader for Reader {
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
@@ -182,7 +182,7 @@ impl crate::reader::Reader for Reader {
             return Ok(Box::new(rdr));
         } else {
             return Err(crate::reader::Error::Unsupported(
-                "texture archives are not supported",
+                "texture archives are not supported".into(),
             ));
             /*
                         let file = self

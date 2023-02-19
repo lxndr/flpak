@@ -1,10 +1,6 @@
 name: Main
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
-  pull_request:
+on: [push, pull_request]
 
 permissions:
   contents: write
@@ -18,7 +14,7 @@ jobs:
       - name: Install latest rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           default: true
           override: true
       - name: Build
@@ -37,7 +33,7 @@ jobs:
       - name: Install latest rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           default: true
           override: true
       - name: Build

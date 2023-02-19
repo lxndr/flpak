@@ -25,8 +25,7 @@ impl Reader {
         let mut stm = BufReader::new(file);
 
         // header
-        let hdr = Header::read(&mut stm)
-            .map_err(|err| crate::reader::Error::Io("failed to read file's header", err))?;
+        let hdr = Header::read(&mut stm).map_err(crate::reader::Error::ReadingHeader)?;
 
         if !hdr.signature.eq(VPK_SIGNATURE) {
             return Err(crate::reader::Error::InvalidSignature {
@@ -47,8 +46,7 @@ impl Reader {
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
         let mut dat_files = HashMap::new();
-        let files = read_file_tree(&mut stm)
-            .map_err(|err| crate::reader::Error::Io("failed to read file tree", err))?;
+        let files = read_file_tree(&mut stm).map_err(crate::reader::Error::ReadingFileIndex)?;
 
         for file in &files {
             if let Some(archive_index) = file.archive_index {
@@ -56,9 +54,8 @@ impl Reader {
                     let file_name = path.to_str().unwrap();
                     let mut archive_path = file_name[..file_name.len() - 7].to_string();
                     archive_path.push_str(&format!("{archive_index:03}.vpk"));
-                    let file = fs::File::open(archive_path).map_err(|err| {
-                        crate::reader::Error::Io("failed to read archive file", err)
-                    })?;
+                    let file = fs::File::open(archive_path)
+                        .map_err(crate::reader::Error::ReadingInputFile)?;
                     let stm = BufReader::new(file);
                     dat_files.insert(archive_index, stm);
                 }
@@ -77,7 +74,7 @@ impl Reader {
 }
 
 impl crate::reader::Reader for Reader {
-    fn len(&self) -> usize {
+    fn file_count(&self) -> usize {
         self.files.len()
     }
 
@@ -95,7 +92,7 @@ impl crate::reader::Reader for Reader {
         }
     }
 
-    fn open_file_by_index<'a>(
+    fn create_file_reader<'a>(
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
