@@ -8,7 +8,7 @@ use super::{
     reader_bits::{File, Header},
 };
 
-use crate::FileType;
+use crate::{FileType, ReadEx};
 
 pub struct Reader {
     stm: BufReader<fs::File>,
@@ -20,14 +20,14 @@ impl Reader {
         let file = fs::File::open(path).map_err(crate::reader::Error::OpeningInputFile)?;
         let mut stm = BufReader::new(file);
 
-        let mut signature = [0u8; 4];
-        stm.read_exact(&mut signature)
+        let signature = stm
+            .read_u8_vec(4)
             .map_err(crate::reader::Error::ReadingSignature)?;
 
         if !signature.eq(PAK_SIGNATURE) {
             return Err(crate::reader::Error::InvalidSignature {
                 signature,
-                expected_signature: PAK_SIGNATURE,
+                expected_signature: PAK_SIGNATURE.to_vec(),
             });
         }
 

@@ -1,106 +1,117 @@
-pub fn calc_file_name_hash(name: &str) -> u64 {
-    let filename = normalize_path(name);
+use std::{fmt, io};
 
-    let (name, ext) = match filename.rfind('.') {
-        Some(pos) => (&filename[..pos], &filename[pos..]),
-        None => (filename.as_str(), ""),
-    };
+use crate::{ReadEx, WriteEx};
 
-    let name_bytes = name.as_bytes();
-    let name_len = name_bytes.len();
-    let ext_bytes = ext.as_bytes();
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Hash(u64);
 
-    let mut hash1 = calc_name_hash(name);
-    hash1 |= calc_ext_hash(ext);
+impl Hash {
+    pub fn from_file_name(fname: &str) -> Hash {
+        let (name, ext) = match fname.rfind('.') {
+            Some(pos) => (&fname[..pos], &fname[pos..]),
+            None => (fname, ""),
+        };
 
-    let hash2: u64 = if name_len > 3 {
-        calc_slice_hash(&name_bytes[1..name_len - 2]).wrapping_add(calc_slice_hash(ext_bytes))
-    } else {
-        calc_slice_hash(ext_bytes)
-    };
+        let name_bytes = name.as_bytes();
+        let name_len = name_bytes.len();
+        let ext_bytes = ext.as_bytes();
 
-    (hash2 << 32) + (hash1 as u64)
-}
+        let mut hash1 = Self::calc_name_hash(name);
+        hash1 |= Self::calc_ext_hash(ext);
 
-pub fn calc_folder_name_hash(name: &str) -> u64 {
-    let name = normalize_path(name);
-    let name_bytes = name.as_bytes();
-    let name_len = name_bytes.len();
+        let hash2: u64 = if name_len > 3 {
+            Self::calc_slice_hash(&name_bytes[1..name_len - 2])
+                .wrapping_add(Self::calc_slice_hash(ext_bytes))
+        } else {
+            Self::calc_slice_hash(ext_bytes)
+        };
 
-    let hash1 = calc_name_hash(&name);
-    let hash2: u64 = if name_len > 3 {
-        calc_slice_hash(&name_bytes[1..name_len - 2])
-    } else {
-        0
-    };
+        Hash((hash2 << 32) + u64::from(hash1))
+    }
 
-    (hash2 << 32) + u64::from(hash1)
-}
+    pub fn from_folder_path(name: &str) -> Hash {
+        let name = Self::normalize_path(name);
+        let name_bytes = name.as_bytes();
+        let name_len = name_bytes.len();
 
-fn normalize_path(path: &str) -> String {
-    assert!(!path.is_empty(), "Path cannot be empty");
-    path.to_ascii_lowercase().replace('/', "\\")
-}
+        let hash1 = Self::calc_name_hash(&name);
+        let hash2: u64 = if name_len > 3 {
+            Self::calc_slice_hash(&name_bytes[1..name_len - 2])
+        } else {
+            0
+        };
 
-fn calc_name_hash(name: &str) -> u32 {
-    let bytes = name.as_bytes();
-    let len = bytes.len();
+        Hash((hash2 << 32) + u64::from(hash1))
+    }
 
-    let mut hash: u32 = u32::from(bytes[len - 1]);
-    hash |= u32::from(if len < 3 { 0 } else { bytes[len - 2] }) << 8;
-    hash |= (len as u32) << 16;
-    hash |= u32::from(bytes[0]) << 24;
+    fn normalize_path(path: &str) -> String {
+        assert!(!path.is_empty(), "Path cannot be empty");
+        path.to_ascii_lowercase().replace('/', "\\")
+    }
 
-    hash
-}
+    fn calc_name_hash(name: &str) -> u32 {
+        let bytes = name.as_bytes();
+        let len = bytes.len();
 
-fn calc_ext_hash(ext: &str) -> u32 {
-    match ext {
-        ".kf" => 0x80,
-        ".nif" => 0x8000,
-        ".dds" => 0x8080,
-        ".wav" => 0x80000000,
-        _ => 0,
+        let mut hash: u32 = u32::from(bytes[len - 1]);
+        hash |= u32::from(if len < 3 { 0 } else { bytes[len - 2] }) << 8;
+        hash |= (len as u32) << 16;
+        hash |= u32::from(bytes[0]) << 24;
+
+        hash
+    }
+
+    fn calc_ext_hash(ext: &str) -> u32 {
+        match ext {
+            ".kf" => 0x80,
+            ".nif" => 0x8000,
+            ".dds" => 0x8080,
+            ".wav" => 0x80000000,
+            _ => 0,
+        }
+    }
+
+    fn calc_slice_hash(bytes: &[u8]) -> u64 {
+        let mut hash: u64 = 0;
+
+        for &byte in bytes {
+            hash = hash.wrapping_mul(0x1003f).wrapping_add(u64::from(byte));
+        }
+
+        hash
     }
 }
 
-fn calc_slice_hash(bytes: &[u8]) -> u64 {
-    let mut hash: u64 = 0;
-
-    for &byte in bytes {
-        hash = hash.wrapping_mul(0x1003f).wrapping_add(u64::from(byte));
-    }
-
-    hash
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn calc_file_name_hash() {
-        assert_eq!(
-            super::calc_file_name_hash("dlcanchfrelevmachplatf01.nif"),
-            3351549684976496689,
-        );
-        assert_eq!(super::calc_file_name_hash("go.nif"), 10578188054420422767,);
-    }
-
-    #[test]
-    fn calc_folder_name_hash() {
-        assert_eq!(
-            super::calc_folder_name_hash(&String::from(
-                "sound\\voice\\hearthfires.esm\\femaleelfhaughty"
-            )),
-            18022389080945785,
-        );
-        assert_eq!(super::calc_folder_name_hash(&String::from("x")), 2013331576,);
-        assert_eq!(
-            super::calc_folder_name_hash(&String::from("xx")),
-            2013397112,
-        );
-        assert_eq!(
-            super::calc_folder_name_hash(&String::from("xxx")),
-            2013493368,
-        );
+impl From<u64> for Hash {
+    fn from(val: u64) -> Self {
+        Self(val)
     }
 }
+
+impl From<Hash> for u64 {
+    fn from(val: Hash) -> Self {
+        val.0
+    }
+}
+
+impl fmt::LowerHex for Hash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::LowerHex::fmt(&self.0, f)
+    }
+}
+
+pub trait ReadHash: io::BufRead {
+    fn read_hash(&mut self, big_endian: bool) -> io::Result<Hash> {
+        Ok(Hash(self.read_u64(big_endian)?))
+    }
+}
+
+impl<R: io::BufRead + ?Sized> ReadHash for R {}
+
+pub trait WriteHash: io::Write {
+    fn write_hash(&mut self, hash: &Hash, big_endian: bool) -> io::Result<()> {
+        self.write_u64(hash.0, big_endian)
+    }
+}
+
+impl<R: io::Write + ?Sized> WriteHash for R {}

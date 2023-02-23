@@ -1,16 +1,19 @@
 use std::{
+    collections::HashMap,
     fs,
     io::{self, Seek, SeekFrom, Write},
     path::Path,
 };
 
+use super::common::{FileIndex, DEFAULT_KEY, RENPY_PADDING};
+use crate::{writer, FileType, InputFileList, IntoUnixPath};
 use libflate::zlib;
 
-use crate::{writer, FileType, InputFileList, IntoUnixPath};
-
-use super::common::{FileIndex, DEFAULT_KEY, RENPY_PADDING};
-
-pub fn create_archive(input_files: InputFileList, path: &Path) -> writer::Result<()> {
+pub fn create_archive(
+    input_files: InputFileList,
+    path: &Path,
+    _params: HashMap<String, String>,
+) -> writer::Result<()> {
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
     let mut file_index = FileIndex::new();
 

@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeMap,
+    collections::HashMap,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -19,7 +20,11 @@ struct File {
     hash: Hash,
 }
 
-pub fn create_archive(files: InputFileList, path: &Path) -> writer::Result<()> {
+pub fn create_archive(
+    files: InputFileList,
+    path: &Path,
+    _params: HashMap<String, String>,
+) -> writer::Result<()> {
     let input_files = collect_file_info(&files)?;
     let input_files_by_hash = create_hash_map(&input_files)?;
     let file_count = input_files.len();

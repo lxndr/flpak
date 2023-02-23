@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
-use std::{fs, io, path::PathBuf};
-
 use flpak::{reader, registry::Registry, FileType, InputFileListBuilder};
+use std::{collections::HashMap, fs, io, path::PathBuf};
 
 #[derive(Parser)]
 #[command(about = "An archive utility", long_about = None)]
@@ -290,7 +289,7 @@ fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            writer_fn(input_files, &output_file).map_err(|err| {
+            writer_fn(input_files, &output_file, HashMap::new()).map_err(|err| {
                 io::Error::new(
                     io::ErrorKind::Other,
                     format!("failed to create archive: {}", err),

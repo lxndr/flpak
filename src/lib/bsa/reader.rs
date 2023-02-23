@@ -1,104 +1,54 @@
-use std::fs;
-use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::path::Path;
-
-use crate::FileType;
-
-use super::reader_bits::read_folder_records;
-use super::{
-    common::BSA_SIGNATURE,
-    hash::{calc_file_name_hash, calc_folder_name_hash},
-    reader_bits::{read_file_blocks, read_file_names, read_file_records, File, Folder, Header},
+use std::{
+    fs,
+    io::{BufReader, Read, Seek, SeekFrom},
+    path::Path,
 };
 
-const VALID_VERSIONS: [u32; 3] = [103, 104, 105];
+use libflate::zlib;
+
+use crate::{FileType, ReadEx};
+
+use super::{
+    read_file_index::{File, Folder},
+    Flags, Hash, ReadFileIndex, ReadHeader, Version, BSA_SIGNATURE,
+};
 
 pub struct Reader {
-    stm: BufReader<fs::File>,
+    file: fs::File,
     folders: Vec<Folder>,
     files: Vec<File>,
+    version: Version,
     xmem_codec: bool,
 }
 
 impl Reader {
     fn open(path: &Path, options: crate::reader::Options) -> crate::reader::Result<Self> {
         let file = fs::File::open(path).map_err(crate::reader::Error::OpeningInputFile)?;
-        let file_metadata = file
-            .metadata()
-            .map_err(crate::reader::Error::ReadingInputFileMetadata)?;
-        let mut stm = BufReader::new(file);
+        let mut rdr = BufReader::new(file);
 
-        if file_metadata.len() > u64::from(u32::MAX) {
-            return Err(crate::reader::Error::Other(
-                "file cannot be larger than 4GiB".into(),
-            ));
-        }
-
-        let mut signature = [0u8; 4];
-        stm.read_exact(&mut signature)
+        let signature = rdr
+            .read_u8_vec(4)
             .map_err(crate::reader::Error::ReadingSignature)?;
 
-        if !signature.eq(BSA_SIGNATURE) {
+        if signature != BSA_SIGNATURE {
             return Err(crate::reader::Error::InvalidSignature {
-                signature,
-                expected_signature: BSA_SIGNATURE,
+                signature: signature.clone(),
+                expected_signature: BSA_SIGNATURE.to_vec(),
             });
         }
 
-        let hdr = Header::read(&mut stm).map_err(crate::reader::Error::ReadingHeader)?;
-
-        if !VALID_VERSIONS.contains(&hdr.version) {
-            return Err(crate::reader::Error::UnsupportedVersion {
-                version: hdr.version,
-                supported_versions: &VALID_VERSIONS,
-            });
-        }
-
-        if options.strict && hdr.folder_records_offset != 36 {
-            return Err(crate::reader::Error::Other(
-                "invalid folder records offset".into(),
-            ));
-        }
-
-        let has_folder_names = (hdr.archive_flags & 0x01) != 0;
-        let has_file_names = (hdr.archive_flags & 0x02) != 0;
-        let compressed_by_default = (hdr.archive_flags & 0x04) != 0;
-        let is_big_endian = (hdr.archive_flags & 0x40) != 0;
-        let embed_file_names = (hdr.archive_flags & 0x100) != 0;
-        let xmem_codec = (hdr.archive_flags & 0x200) != 0;
+        let hdr = rdr
+            .read_header()
+            .map_err(crate::reader::Error::ReadingHeader)?;
 
         // folder records
-        stm.seek(SeekFrom::Start(u64::from(hdr.folder_records_offset)))
-            .map_err(crate::reader::Error::ReadingInputFile)?;
-
-        let mut folders =
-            read_folder_records(&mut stm, hdr.folder_count, hdr.version, is_big_endian)
-                .map_err(crate::reader::Error::ReadingFileIndex)?;
-
-        let mut files = read_file_records(
-            &mut stm,
-            &mut folders,
-            has_folder_names,
-            compressed_by_default,
-            is_big_endian,
-            hdr.total_file_name_length,
-        )
-        .map_err(crate::reader::Error::ReadingFileIndex)?;
-
-        read_file_names(
-            &mut stm,
-            &mut files,
-            has_file_names,
-            hdr.total_file_name_length,
-        )
-        .map_err(crate::reader::Error::ReadingFileName)?;
-
-        read_file_blocks(&mut stm, &mut files, embed_file_names, is_big_endian)
-            .map_err(crate::reader::Error::ReadingFileName)?;
+        let (folders, files) = rdr
+            .read_file_index(&hdr)
+            .map_err(crate::reader::Error::ReadingFileIndex)?;
 
         if options.strict {
             for folder in &folders {
-                let expected_hash = calc_folder_name_hash(&folder.name);
+                let expected_hash = Hash::from_folder_path(&folder.name);
 
                 if folder.name_hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {
@@ -116,7 +66,7 @@ impl Reader {
                     None => &file.name,
                 };
 
-                let expected_hash = calc_file_name_hash(filename);
+                let expected_hash = Hash::from_file_name(filename);
 
                 if file.name_hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {
@@ -129,10 +79,11 @@ impl Reader {
         }
 
         Ok(Reader {
-            stm,
+            file: rdr.into_inner(),
             folders,
             files,
-            xmem_codec,
+            version: hdr.version,
+            xmem_codec: hdr.flags.contains(Flags::XMEM_CODEC),
         })
     }
 }
@@ -180,24 +131,35 @@ impl crate::reader::Reader for Reader {
             return Err(crate::reader::Error::NotFile);
         }
 
-        let file = self.files.get(index - folder_count).unwrap();
+        let file_rec = self
+            .files
+            .get(index - folder_count)
+            .expect("`index` should be within boundaries");
 
-        self.stm
-            .seek(SeekFrom::Start(u64::from(file.offset)))
+        self.file
+            .seek(SeekFrom::Start(u64::from(file_rec.offset)))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
-        let data_stm = self.stm.by_ref().take(u64::from(file.size));
+        let data_stm = self.file.by_ref().take(u64::from(file_rec.size));
 
-        if file.compressed {
-            return Err(crate::reader::Error::Unsupported(
-                "compressed files are not supported".into(),
-            ));
-        }
+        if file_rec.compressed {
+            if self.xmem_codec {
+                return Err(crate::reader::Error::Unsupported(
+                    "xmem compression are not supported".into(),
+                ));
+            }
 
-        if self.xmem_codec {
-            return Err(crate::reader::Error::Unsupported(
-                "xmem compression are not supported".into(),
-            ));
+            match self.version {
+                Version::V103 | Version::V104 => {
+                    let decoder = zlib::Decoder::new(data_stm)
+                        .map_err(crate::reader::Error::ReadingInputFile)?;
+                    return Ok(Box::new(decoder));
+                }
+                Version::V105 => {
+                    let decoder = lz4_flex::frame::FrameDecoder::new(data_stm);
+                    return Ok(Box::new(decoder));
+                }
+            }
         }
 
         Ok(Box::new(data_stm))

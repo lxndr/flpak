@@ -32,11 +32,14 @@ pub enum Error {
     #[error("failed to archive file '{0}: file size should not be larger than 4 GiB")]
     InputFileLarger4GiB(PathBuf),
 
-    #[error("failed to archive file '{0}: file name should not be longer than {0}")]
-    InputFileNameTooLong(usize),
+    #[error("failed to archive file '{0}: file name should not be longer than {1}")]
+    InputFileNameTooLong(String, usize),
 
     #[error("failed to archive file '{0}: file name can only contain ascii characters")]
     InputFileNotAscii(String),
+
+    #[error("failed to archive file '{0}: file should be in folder")]
+    InputFileNotInFolder(String),
 
     #[error("failed to archive file '{file}': duplicate hash {hash} for file {existing_file}")]
     InputFileDuplicateHash {
@@ -50,6 +53,9 @@ pub enum Error {
 
     #[error("output file cannot be larger than 4GiB")]
     OutputFileLarger4GiB,
+
+    #[error("invalid writer parameter `{0}: {1}")]
+    InvalidParameter(&'static str, String),
 
     #[error("{0}")]
     Other(String),

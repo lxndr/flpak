@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     io::{self, Cursor, Seek, SeekFrom, Write},
     path::Path,
@@ -8,7 +9,11 @@ use crate::{writer, FileType, InputFile, InputFileList, IntoUnixPath, WriteEx};
 
 use super::common::{PAK_FILE_ENTRY_SIZE, PAK_SIGNATURE};
 
-pub fn create_archive(input_files: InputFileList, path: &Path) -> writer::Result<()> {
+pub fn create_archive(
+    input_files: InputFileList,
+    path: &Path,
+    _params: HashMap<String, String>,
+) -> writer::Result<()> {
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
 
     out.write_all(PAK_SIGNATURE)
@@ -35,7 +40,7 @@ pub fn create_archive(input_files: InputFileList, path: &Path) -> writer::Result
         let path = input_file.path.into_unix_path();
 
         if path.len() > 55 {
-            return Err(writer::Error::InputFileNameTooLong(55));
+            return Err(writer::Error::InputFileNameTooLong(path, 55));
         }
 
         let offset = out

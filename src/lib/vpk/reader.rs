@@ -29,8 +29,8 @@ impl Reader {
 
         if !hdr.signature.eq(VPK_SIGNATURE) {
             return Err(crate::reader::Error::InvalidSignature {
-                signature: hdr.signature,
-                expected_signature: VPK_SIGNATURE,
+                signature: hdr.signature.to_vec(),
+                expected_signature: VPK_SIGNATURE.to_vec(),
             });
         }
 

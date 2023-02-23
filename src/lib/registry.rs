@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::File,
     io::{self, Read},
     path::Path,
@@ -26,7 +27,8 @@ pub enum Error {
 pub type Result<T> = result::Result<T, Error>;
 pub type MakeReaderFn =
     fn(path: &Path, options: reader::Options) -> reader::Result<Box<dyn reader::Reader>>;
-pub type WriterFn = fn(files: InputFileList, path: &Path) -> writer::Result<()>;
+pub type WriterFn =
+    fn(files: InputFileList, path: &Path, params: HashMap<String, String>) -> writer::Result<()>;
 
 pub struct FormatDesc {
     pub name: &'static str,
@@ -59,7 +61,7 @@ impl Registry {
                 extensions: vec!["bsa"],
                 signatures: vec![b"BSA\0".to_vec()],
                 make_reader_fn: Some(bsa::make_reader),
-                writer_fn: None,
+                writer_fn: Some(bsa::create_archive),
             },
             FormatDesc {
                 name: "ba2",

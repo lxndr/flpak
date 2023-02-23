@@ -18,8 +18,8 @@ pub enum Error {
 
     #[error("invalid signature {signature:?}, expected {expected_signature:?}")]
     InvalidSignature {
-        signature: [u8; 4],
-        expected_signature: &'static [u8; 4],
+        signature: Vec<u8>,
+        expected_signature: Vec<u8>,
     },
 
     #[error("invalid signature '{signature:}', expected '{expected_signature:}'")]

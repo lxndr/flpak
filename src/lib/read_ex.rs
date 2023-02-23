@@ -80,19 +80,54 @@ pub trait ReadEx: BufRead {
         Ok(s)
     }
 
+    /// Reads a sized null-terminated string.
+    /// First byte signifies integer length of following string including null.
+    fn read_u8_zstring(&mut self) -> Result<String> {
+        let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
+
+        if len == 0 {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "string cannot be 0 length",
+            ));
+        }
+
+        let mut buf = vec![0u8; len];
+        self.read_exact(&mut buf)?;
+
+        String::from_utf8(buf[..len - 1].to_vec())
+            .map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+    }
+
+    /// Reads a sized string.
+    /// First byte signifies integer length of following string.
+    fn read_u8_string(&mut self) -> Result<String> {
+        let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
+
+        let mut buf = vec![0u8; len];
+        self.read_exact(&mut buf)?;
+
+        String::from_utf8(buf).map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+    }
+
     /// Reads a sized string.
     /// First two bytes signify little endian 16 bit integer length of following string.
     fn read_u16le_string(&mut self) -> Result<String> {
         let len: usize = self
             .read_u16_le()?
             .try_into()
-            .expect("`u16` should fit into `usize`");
+            .expect("should fit into `usize`");
 
-        let mut name_buf = vec![0u8; len];
-        self.read_exact(&mut name_buf)?;
+        let mut buf = vec![0u8; len];
+        self.read_exact(&mut buf)?;
 
-        String::from_utf8(name_buf)
-            .map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+        String::from_utf8(buf).map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+    }
+
+    fn read_u8_vec(&mut self, count: usize) -> io::Result<Vec<u8>> {
+        let mut v = vec![0u8; count];
+        self.read_exact(&mut v)?;
+        Ok(v)
     }
 
     fn read_u32_le_vec(&mut self, count: usize) -> io::Result<Vec<u32>> {

@@ -33,8 +33,8 @@ impl Reader {
 
         if hdr.signature != BSA_SIGNATURE {
             return Err(crate::reader::Error::InvalidSignature {
-                signature: hdr.signature,
-                expected_signature: &BSA_SIGNATURE,
+                signature: hdr.signature.to_vec(),
+                expected_signature: BSA_SIGNATURE.to_vec(),
             });
         }
 

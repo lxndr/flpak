@@ -1,6 +1,7 @@
+use std::{collections::HashMap, fs, io, path::Path};
+
 use hex_literal::hex;
 use sha1::{Digest, Sha1};
-use std::{fs, io, path::Path};
 use tempdir::TempDir;
 
 use crate::InputFileListBuilder;
@@ -15,7 +16,7 @@ fn correct() {
 
     let dir = TempDir::new("flpak-tests").unwrap();
     let output_path = dir.path().join("archive.bsa");
-    let res = super::create_archive(input_files, &output_path);
+    let res = super::create_archive(input_files, &output_path, HashMap::new());
     assert!(res.is_ok());
 
     let mut file = fs::File::open(&output_path).unwrap();
