@@ -20,7 +20,7 @@ pub fn create_archive(
     params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let mut hdr = Header::default();
-    parse_params(&params, &mut hdr)?;
+    parse_params(params, &mut hdr)?;
 
     let folder_record_size = match hdr.version {
         Version::V103 | Version::V104 => 16,

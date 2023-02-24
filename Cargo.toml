@@ -10,7 +10,7 @@ path = "src/lib/mod.rs"
 
 [[bin]]
 name = "flpak"
-path = "src/bin/cli.rs"
+path = "src/bin/cli/main.rs"
 
 [dependencies]
 bitflags = "1.3.2"
