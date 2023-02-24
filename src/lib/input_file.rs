@@ -87,12 +87,18 @@ impl InputFileListBuilder {
     }
 }
 
-pub trait IntoUnixPath {
-    fn into_unix_path(&self) -> String;
+impl Default for InputFileListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-impl IntoUnixPath for Path {
-    fn into_unix_path(&self) -> String {
+pub trait ToUnixPath {
+    fn to_unix_path(&self) -> String;
+}
+
+impl ToUnixPath for Path {
+    fn to_unix_path(&self) -> String {
         let mut components = Vec::new();
 
         for cmp in self.components() {
@@ -115,7 +121,7 @@ impl IntoUnixPath for Path {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FileType, IntoUnixPath};
+    use crate::{FileType, ToUnixPath};
     use std::path::Path;
 
     #[test]
@@ -132,7 +138,7 @@ mod tests {
     #[test]
     fn into_unix_path() {
         let path = Path::new("dir1/file1.txt");
-        let unix_path = path.into_unix_path();
+        let unix_path = path.to_unix_path();
         assert_eq!(unix_path, "dir1/file1.txt");
     }
 }

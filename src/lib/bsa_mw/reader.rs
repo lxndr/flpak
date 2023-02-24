@@ -65,7 +65,7 @@ impl Reader {
             for name in &names {
                 let hash =
                     Hash::read_from(&mut rdr).map_err(crate::reader::Error::ReadingInputFile)?;
-                let expected_hash = Hash::from_path(&name);
+                let expected_hash = Hash::from_path(name);
 
                 if hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {

@@ -5,14 +5,14 @@ use std::{
     path::Path,
 };
 
-use crate::{writer, FileType, InputFile, InputFileList, IntoUnixPath, WriteEx};
+use crate::{writer, FileType, InputFile, InputFileList, ToUnixPath, WriteEx};
 
 use super::common::{PAK_FILE_ENTRY_SIZE, PAK_SIGNATURE};
 
 pub fn create_archive(
     input_files: InputFileList,
     path: &Path,
-    _params: HashMap<String, String>,
+    _params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
 
@@ -37,7 +37,7 @@ pub fn create_archive(
         })?;
         let size = u32::try_from(metadata.len())
             .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
-        let path = input_file.path.into_unix_path();
+        let path = input_file.path.to_unix_path();
 
         if path.len() > 55 {
             return Err(writer::Error::InputFileNameTooLong(path, 55));
@@ -54,8 +54,6 @@ pub fn create_archive(
             .map_err(|err| writer::Error::ArchivingInputFile(input_file.host_path.clone(), err))?;
 
         let offset = u32::try_from(offset)
-            .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
-        let size = u32::try_from(size)
             .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
 
         index_cursor

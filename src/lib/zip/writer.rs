@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fs, io, path::Path};
 
-use crate::{writer, FileType, InputFileList, IntoUnixPath};
+use crate::{writer, FileType, InputFileList, ToUnixPath};
 
 pub fn create_archive(
     input_files: InputFileList,
     path: &Path,
-    _params: HashMap<String, String>,
+    _params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
     let mut zip = zip::ZipWriter::new(out);
@@ -13,7 +13,7 @@ pub fn create_archive(
     for input_file in input_files {
         match input_file.file_type {
             FileType::Directory => {
-                let path = format!("{}/", input_file.path.into_unix_path());
+                let path = format!("{}/", input_file.path.to_unix_path());
                 zip.add_directory(path, Default::default()).map_err(|err| {
                     writer::Error::WritingFileData(io::Error::new(
                         io::ErrorKind::Other,
@@ -26,7 +26,7 @@ pub fn create_archive(
                     writer::Error::OpeningInputFile(input_file.host_path.clone(), err)
                 })?;
 
-                let path = input_file.path.into_unix_path();
+                let path = input_file.path.to_unix_path();
                 let options = zip::write::FileOptions::default()
                     .compression_method(zip::CompressionMethod::Deflated);
 

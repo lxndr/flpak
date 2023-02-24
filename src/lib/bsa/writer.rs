@@ -7,7 +7,7 @@ use std::{
 
 use libflate::zlib;
 
-use crate::{writer, FileType, InputFileList, IntoUnixPath, WriteEx};
+use crate::{writer, FileType, InputFileList, ToUnixPath, WriteEx};
 
 use super::{
     write_file_index::{File, Folder},
@@ -17,7 +17,7 @@ use super::{
 pub fn create_archive(
     input_files: InputFileList,
     path: &Path,
-    params: HashMap<String, String>,
+    params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let mut hdr = Header::default();
     parse_params(&params, &mut hdr)?;
@@ -161,7 +161,7 @@ pub fn create_archive(
 
 fn parse_params(params: &HashMap<String, String>, hdr: &mut Header) -> crate::writer::Result<()> {
     hdr.version = Version::try_from(params.get("version"))
-        .map_err(|err| writer::Error::InvalidParameter("version", err.clone()))?;
+        .map_err(|err| writer::Error::InvalidParameter("version", err))?;
 
     let compress = params.get("compress").map_or(false, |v| v == "true");
     let big_endian = params.get("big-endian").map_or(false, |v| v == "true");
@@ -195,7 +195,7 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
     for input_file in input_files {
         match input_file.file_type {
             FileType::Directory => {
-                let folder_name = input_file.path.into_unix_path().to_ascii_lowercase();
+                let folder_name = input_file.path.to_unix_path().to_ascii_lowercase();
                 add_folder(&mut folders, folder_name)?;
             }
             FileType::RegularFile => {
@@ -210,15 +210,15 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
                     .path
                     .parent()
                     .unwrap_or(&input_file.path)
-                    .into_unix_path()
+                    .to_unix_path()
                     .to_ascii_lowercase();
 
                 if folder_name.is_empty() {
-                    return Err(writer::Error::InputFileNotInFolder(file_name.clone()));
+                    return Err(writer::Error::InputFileNotInFolder(file_name));
                 }
 
                 if !file_name.is_ascii() {
-                    return Err(writer::Error::InputFileNotAscii(folder_name.clone()));
+                    return Err(writer::Error::InputFileNotAscii(folder_name));
                 }
 
                 let folder = add_folder(&mut folders, folder_name)?;
@@ -237,7 +237,7 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
     let mut folders: Vec<Folder> = folders.into_values().collect();
 
     // no empty folders
-    folders.retain(|folder| folder.files.len() > 0);
+    folders.retain(|folder| !folder.files.is_empty());
 
     // folders should be sorted by name hash
     folders.sort_by(|a, b| a.name_hash.cmp(&b.name_hash));
@@ -255,7 +255,7 @@ fn add_folder(
     folder_name: String,
 ) -> writer::Result<&mut Folder> {
     if !folder_name.is_ascii() {
-        return Err(writer::Error::InputFileNotAscii(folder_name.clone()));
+        return Err(writer::Error::InputFileNotAscii(folder_name));
     }
 
     if folder_name.len() > 255 {

@@ -10,7 +10,7 @@ use super::{
     hash::Hash,
     records::{FileRecord, Header},
 };
-use crate::{writer, FileType, InputFileList, IntoUnixPath, WriteEx};
+use crate::{writer, FileType, InputFileList, ToUnixPath, WriteEx};
 
 struct File {
     local_path: PathBuf,
@@ -23,7 +23,7 @@ struct File {
 pub fn create_archive(
     files: InputFileList,
     path: &Path,
-    _params: HashMap<String, String>,
+    _params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let input_files = collect_file_info(&files)?;
     let input_files_by_hash = create_hash_map(&input_files)?;
@@ -81,7 +81,7 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
             })?;
             let size = u32::try_from(metadata.len())
                 .map_err(|_| writer::Error::InputFileLarger4GiB(file.host_path.clone()))?;
-            let path = file.path.into_unix_path().to_ascii_lowercase();
+            let path = file.path.to_unix_path().to_ascii_lowercase();
 
             if !path.is_ascii() {
                 return Err(writer::Error::InputFileNotAscii(path));

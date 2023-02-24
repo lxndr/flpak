@@ -28,7 +28,7 @@ pub type Result<T> = result::Result<T, Error>;
 pub type MakeReaderFn =
     fn(path: &Path, options: reader::Options) -> reader::Result<Box<dyn reader::Reader>>;
 pub type WriterFn =
-    fn(files: InputFileList, path: &Path, params: HashMap<String, String>) -> writer::Result<()>;
+    fn(files: InputFileList, path: &Path, params: &HashMap<String, String>) -> writer::Result<()>;
 
 pub struct FormatDesc {
     pub name: &'static str,
@@ -117,7 +117,6 @@ impl Registry {
         &self.formats
     }
 
-    #[must_use]
     pub fn create_reader(
         &self,
         format: Option<String>,
@@ -132,9 +131,8 @@ impl Registry {
             format_desc
         } else {
             let mut sig = vec![0u8; 4];
-            let mut file = File::open(path).map_err(|err| Error::IoError(err))?;
-            file.read_exact(&mut sig)
-                .map_err(|err| Error::IoError(err))?;
+            let mut file = File::open(path).map_err(Error::IoError)?;
+            file.read_exact(&mut sig).map_err(Error::IoError)?;
 
             let Some(format_desc) = self.find_format_by_signature(&sig) else {
                 return Err(Error::UnableToDetect);
@@ -147,10 +145,9 @@ impl Registry {
             return Err(Error::ReadingUnsupported(format_desc.name.to_string()));
         };
 
-        make_reader_fn(path, options).map_err(|err| Error::ReaderError(err))
+        make_reader_fn(path, options).map_err(Error::ReaderError)
     }
 
-    #[must_use]
     pub fn create_writer(&self, format: &str) -> Result<WriterFn> {
         let Some(format_desc) = self.find_format_by_name(format) else {
             return Err(Error::UnknownFormat(format.to_string()));
@@ -172,7 +169,13 @@ impl Registry {
     pub fn find_format_by_signature(&self, buf: &[u8]) -> Option<&FormatDesc> {
         self.formats
             .iter()
-            .find(|f| f.signatures.iter().find(|&sig| sig == buf).is_some())
+            .find(|f| f.signatures.iter().any(|sig| sig == buf))
+    }
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

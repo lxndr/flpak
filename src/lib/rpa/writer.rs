@@ -1,25 +1,25 @@
 use std::{
     collections::HashMap,
     fs,
-    io::{self, Seek, SeekFrom, Write},
+    io::{self, Seek, Write},
     path::Path,
 };
 
 use super::common::{FileIndex, DEFAULT_KEY, RENPY_PADDING};
-use crate::{writer, FileType, InputFileList, IntoUnixPath};
+use crate::{writer, FileType, InputFileList, ToUnixPath};
 use libflate::zlib;
 
 pub fn create_archive(
     input_files: InputFileList,
     path: &Path,
-    _params: HashMap<String, String>,
+    _params: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let mut out = fs::File::create(path).map_err(writer::Error::CreatingOutputFile)?;
     let mut file_index = FileIndex::new();
 
     // header placeholder
     let header = format!("RPA-3.0 {:016x} {DEFAULT_KEY:08x}\n", 0);
-    out.write_all(&header.as_bytes())
+    out.write_all(header.as_bytes())
         .map_err(writer::Error::WritingHeader)?;
 
     // files and making file index
@@ -29,7 +29,7 @@ pub fn create_archive(
                 writer::Error::ReadingInputFileMetadata(input_file.host_path.clone(), err)
             })?;
             let size = metadata.len();
-            let path = input_file.path.into_unix_path();
+            let path = input_file.path.to_unix_path();
 
             out.write_all(RENPY_PADDING).map_err(|err| {
                 writer::Error::ArchivingInputFile(input_file.host_path.clone(), err)
@@ -76,8 +76,7 @@ pub fn create_archive(
 
     // write real header
     let header = format!("RPA-3.0 {file_index_offset:016x} {DEFAULT_KEY:08x}\n");
-    out.seek(SeekFrom::Start(0))
-        .map_err(writer::Error::WritingHeader)?;
+    out.rewind().map_err(writer::Error::WritingHeader)?;
     out.write_all(header.as_bytes())
         .map_err(writer::Error::WritingHeader)?;
 

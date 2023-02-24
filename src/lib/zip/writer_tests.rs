@@ -15,7 +15,7 @@ fn correct() {
 
     let dir = TempDir::new("flpak-tests").unwrap();
     let output_path = dir.path().join("archive.zip");
-    let res = super::create_archive(input_files, &output_path, HashMap::new());
+    let res = super::create_archive(input_files, &output_path, &HashMap::new());
     assert!(res.is_ok());
 
     let mut file = fs::File::open(&output_path).unwrap();

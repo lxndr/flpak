@@ -62,7 +62,7 @@ pub trait WriteFileIndex: Write {
 
         // folder records
         for folder in folders {
-            self.write_folder_record(folder, &hdr)?;
+            self.write_folder_record(folder, hdr)?;
         }
 
         // file records

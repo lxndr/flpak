@@ -50,7 +50,7 @@ impl crate::reader::Reader for Reader {
         crate::reader::File {
             name: file.name.clone(),
             file_type: FileType::RegularFile,
-            size: Some(u64::from(file.size)),
+            size: Some(file.size),
         }
     }
 
@@ -64,10 +64,10 @@ impl crate::reader::Reader for Reader {
             .expect("`index` should be within boundaries");
 
         self.stm
-            .seek(SeekFrom::Start(u64::from(file.offset)))
+            .seek(SeekFrom::Start(file.offset))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
-        let stm = self.stm.by_ref().take(u64::from(file.size));
+        let stm = self.stm.by_ref().take(file.size);
         Ok(Box::new(stm))
     }
 }

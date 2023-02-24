@@ -73,10 +73,7 @@ pub trait ReadHeader: BufRead {
     fn read_header(&mut self) -> Result<Header> {
         Ok(Header {
             version: Version::try_from(self.read_u32_le()?).map_err(|err| {
-                Error::new(
-                    ErrorKind::InvalidData,
-                    format!("invalid version: {}", err.to_string()),
-                )
+                Error::new(ErrorKind::InvalidData, format!("invalid version: {}", err))
             })?,
             folder_records_offset: self.read_u32_le()?,
             flags: Flags::from_bits(self.read_u32_le()?)

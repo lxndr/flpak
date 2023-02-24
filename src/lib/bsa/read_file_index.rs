@@ -60,7 +60,7 @@ pub trait ReadFileIndex: BufRead + Seek {
         self.seek(SeekFrom::Start(u64::from(hdr.folder_records_offset)))?;
 
         for _ in 0..hdr.folder_count {
-            folders.push(self.read_folder_record(&hdr)?);
+            folders.push(self.read_folder_record(hdr)?);
         }
 
         // file records
@@ -103,7 +103,7 @@ pub trait ReadFileIndex: BufRead + Seek {
             let str_data = String::from_utf8(buf).map_err(|err| {
                 Error::new(
                     ErrorKind::InvalidData,
-                    format!("invalid file names block: {}", err.to_string()),
+                    format!("invalid file names block: {}", err),
                 )
             })?;
             let file_names: Vec<&str> = str_data.split_terminator('\0').collect();

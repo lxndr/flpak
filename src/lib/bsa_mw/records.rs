@@ -40,7 +40,7 @@ impl Header {
     }
 
     pub fn absolute_hash_table_offset(&self) -> u64 {
-        return u64::from(self.hash_table_offset) + BSA_HEADER_SIZE;
+        u64::from(self.hash_table_offset) + BSA_HEADER_SIZE
     }
 }
 

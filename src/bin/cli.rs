@@ -105,20 +105,20 @@ fn main() -> std::io::Result<()> {
                 match file_type {
                     FileType::RegularFile => {
                         if args.verbose {
-                            println!("Checking {}...", name);
+                            println!("Checking {name}...");
                         }
 
                         let mut stm = rdr.create_file_reader(index).map_err(|err| {
                             io::Error::new(
                                 io::ErrorKind::Other,
-                                format!("failed to open archived file '{}': {}", name, err),
+                                format!("failed to open archived file '{name}': {err}"),
                             )
                         })?;
 
                         io::copy(&mut stm, &mut io::sink()).map_err(|err| {
                             io::Error::new(
                                 io::ErrorKind::Other,
-                                format!("failed to read archived file '{}': {}", name, err),
+                                format!("failed to read archived file '{name}': {err}"),
                             )
                         })?;
                     }
@@ -234,10 +234,8 @@ fn main() -> std::io::Result<()> {
                             io::Error::new(
                                 io::ErrorKind::Other,
                                 format!(
-                                    "failed to extract file '{}': failed to w output file '{}': {}",
-                                    name,
+                                    "failed to extract file '{name}': failed to w output file '{}': {err}",
                                     input_file.display(),
-                                    err
                                 ),
                             )
                         })?;
@@ -251,7 +249,7 @@ fn main() -> std::io::Result<()> {
                         std::fs::create_dir_all(&dir_path).map_err(|err| {
                             io::Error::new(
                                 io::ErrorKind::Other,
-                                format!("failed to create output directory '{}': {}", name, err),
+                                format!("failed to create output directory '{name}': {err}"),
                             )
                         })?;
                     }
@@ -271,7 +269,7 @@ fn main() -> std::io::Result<()> {
                 file_list_builder = file_list_builder.add_dir(dir).map_err(|err| {
                     io::Error::new(
                         io::ErrorKind::Other,
-                        format!("failed to add directory: {}", err),
+                        format!("failed to add directory: {err}"),
                     )
                 })?;
             }
@@ -285,14 +283,14 @@ fn main() -> std::io::Result<()> {
             let writer_fn = registry.create_writer(&format).map_err(|err| {
                 io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to create archive: {}", err),
+                    format!("failed to create archive: {err}"),
                 )
             })?;
 
-            writer_fn(input_files, &output_file, HashMap::new()).map_err(|err| {
+            writer_fn(input_files, &output_file, &HashMap::new()).map_err(|err| {
                 io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to create archive: {}", err),
+                    format!("failed to create archive: {err}"),
                 )
             })?;
         }

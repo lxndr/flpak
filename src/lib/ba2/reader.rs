@@ -137,7 +137,7 @@ impl crate::reader::Reader for Reader {
     }
 
     fn get_file(&self, index: usize) -> crate::reader::File {
-        if self.general_files.len() > 0 {
+        if !self.general_files.is_empty() {
             let file = self
                 .general_files
                 .get(index)
@@ -166,7 +166,7 @@ impl crate::reader::Reader for Reader {
         &'a mut self,
         index: usize,
     ) -> crate::reader::Result<Box<dyn Read + 'a>> {
-        if self.general_files.len() > 0 {
+        if !self.general_files.is_empty() {
             let file = self
                 .general_files
                 .get(index)
@@ -179,11 +179,11 @@ impl crate::reader::Reader for Reader {
             let stm = self.stm.by_ref().take(file.packed_size.into());
             let rdr = zlib::Decoder::new(stm).map_err(crate::reader::Error::ReadingInputFile)?;
 
-            return Ok(Box::new(rdr));
+            Ok(Box::new(rdr))
         } else {
-            return Err(crate::reader::Error::Unsupported(
+            Err(crate::reader::Error::Unsupported(
                 "texture archives are not supported".into(),
-            ));
+            ))
             /*
                         let file = self
                             .texture_files

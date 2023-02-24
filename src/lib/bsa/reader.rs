@@ -32,7 +32,7 @@ impl Reader {
 
         if signature != BSA_SIGNATURE {
             return Err(crate::reader::Error::InvalidSignature {
-                signature: signature.clone(),
+                signature,
                 expected_signature: BSA_SIGNATURE.to_vec(),
             });
         }
