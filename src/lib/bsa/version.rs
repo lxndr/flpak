@@ -1,6 +1,4 @@
-use num_enum::TryFromPrimitive;
-
-#[derive(Default, PartialEq, TryFromPrimitive)]
+#[derive(Default, PartialEq)]
 #[repr(u32)]
 pub enum Version {
     V103 = 103,
@@ -19,6 +17,19 @@ impl From<&Version> for u32 {
     }
 }
 
+impl TryFrom<u32> for Version {
+    type Error = String;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            103 => Ok(Version::V103),
+            104 => Ok(Version::V104),
+            105 => Ok(Version::V105),
+            _ => Err(format!("invalid version {value}")),
+        }
+    }
+}
+
 impl TryFrom<Option<&String>> for Version {
     type Error = String;
 
@@ -28,7 +39,7 @@ impl TryFrom<Option<&String>> for Version {
                 "103" => Ok(Version::V103),
                 "104" => Ok(Version::V104),
                 "105" => Ok(Version::V105),
-                _ => Err(format!("invalid version: {s}")),
+                _ => Err(format!("invalid version {s}")),
             },
             None => Ok(Version::default()),
         }

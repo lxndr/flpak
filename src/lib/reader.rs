@@ -16,7 +16,7 @@ pub enum Error {
     #[error("failed to read file signature: {0}")]
     ReadingSignature(#[source] io::Error),
 
-    #[error("invalid signature {signature:?}, expected {expected_signature:?}")]
+    #[error("invalid signature {signature:X?}, expected {expected_signature:X?}")]
     InvalidSignature {
         signature: Vec<u8>,
         expected_signature: Vec<u8>,
