@@ -15,6 +15,16 @@ fn correct_v105() {
 }
 
 #[test]
+fn correct_v103_xbox() {
+    let res = make_reader(
+        Path::new("./samples/bsa/correct_v103_xbox.bsa"),
+        Options { strict: true },
+    );
+
+    assert_eq!(res.is_ok(), true);
+}
+
+#[test]
 fn invalid_signature() {
     let res = make_reader(
         Path::new("./samples/bsa/invalid_signature.bsa"),

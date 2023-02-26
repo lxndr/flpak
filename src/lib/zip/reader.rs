@@ -1,6 +1,9 @@
-use std::{fs, io, path::Path};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
-use crate::FileType;
+use crate::{FileType, PathBufUtils};
 use zip::ZipArchive;
 
 pub struct Reader {
@@ -28,7 +31,7 @@ impl Reader {
             };
 
             files.push(crate::reader::File {
-                name: file.name().to_string(),
+                name: PathBuf::from_unix(file.name()),
                 file_type,
                 size: Some(file.size()),
             });

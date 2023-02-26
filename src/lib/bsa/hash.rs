@@ -1,12 +1,14 @@
-use std::{fmt, io};
+use std::{fmt, io, path::PathBuf};
 
-use crate::{ReadEx, WriteEx};
+use crate::{PathBufUtils, ReadEx, WriteEx};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Hash(u64);
 
 impl Hash {
     pub fn from_file_name(fname: &str) -> Hash {
+        assert_ne!(fname.len(), 0);
+
         let (name, ext) = match fname.rfind('.') {
             Some(pos) => (&fname[..pos], &fname[pos..]),
             None => (fname, ""),
@@ -29,8 +31,12 @@ impl Hash {
         Hash((hash2 << 32) + u64::from(hash1))
     }
 
-    pub fn from_folder_path(name: &str) -> Hash {
-        let name = Self::normalize_path(name);
+    pub fn from_folder_path(name: &PathBuf) -> Hash {
+        let name = name
+            .try_to_ascii_win()
+            .expect("should be a valid ascii path");
+        assert_ne!(name.len(), 0);
+
         let name_bytes = name.as_bytes();
         let name_len = name_bytes.len();
 
@@ -42,11 +48,6 @@ impl Hash {
         };
 
         Hash((hash2 << 32) + u64::from(hash1))
-    }
-
-    fn normalize_path(path: &str) -> String {
-        assert!(!path.is_empty(), "Path cannot be empty");
-        path.to_ascii_lowercase().replace('/', "\\")
     }
 
     fn calc_name_hash(name: &str) -> u32 {
@@ -101,16 +102,16 @@ impl fmt::LowerHex for Hash {
 }
 
 pub trait ReadHash: io::BufRead {
-    fn read_hash(&mut self, big_endian: bool) -> io::Result<Hash> {
-        Ok(Hash(self.read_u64(big_endian)?))
+    fn read_hash(&mut self) -> io::Result<Hash> {
+        Ok(Hash(self.read_u64_le()?))
     }
 }
 
 impl<R: io::BufRead + ?Sized> ReadHash for R {}
 
 pub trait WriteHash: io::Write {
-    fn write_hash(&mut self, hash: &Hash, big_endian: bool) -> io::Result<()> {
-        self.write_u64(hash.0, big_endian)
+    fn write_hash(&mut self, hash: &Hash) -> io::Result<()> {
+        self.write_u64_le(hash.0)
     }
 }
 

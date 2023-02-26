@@ -1,7 +1,9 @@
 use std::{
-    io::{self, BufRead, Error, ErrorKind, Result},
+    io::{self, BufRead, Result},
     mem, slice,
 };
+
+use crate::io_error;
 
 pub trait ReadEx: BufRead {
     #[inline]
@@ -70,9 +72,9 @@ pub trait ReadEx: BufRead {
         let s = match String::from_utf8(buf) {
             Ok(s) => s,
             Err(e) => {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Failed to read null terminated string: {e}"),
+                return Err(io_error!(
+                    InvalidData,
+                    "Failed to read null terminated string: {e}",
                 ))
             }
         };
@@ -86,8 +88,8 @@ pub trait ReadEx: BufRead {
         let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
 
         if len == 0 {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
+            return Err(io_error!(
+                InvalidData,
                 "string cannot be 0 length",
             ));
         }
@@ -96,7 +98,7 @@ pub trait ReadEx: BufRead {
         self.read_exact(&mut buf)?;
 
         String::from_utf8(buf[..len - 1].to_vec())
-            .map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+            .map_err(|err| io_error!(InvalidData, "{}", err))
     }
 
     /// Reads a sized string.
@@ -107,7 +109,7 @@ pub trait ReadEx: BufRead {
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf).map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+        String::from_utf8(buf).map_err(|err| io_error!(InvalidData, "{}", err))
     }
 
     /// Reads a sized string.
@@ -121,7 +123,7 @@ pub trait ReadEx: BufRead {
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf).map_err(|err| Error::new(ErrorKind::InvalidData, err.to_string()))
+        String::from_utf8(buf).map_err(|err| io_error!(InvalidData, "{}", err))
     }
 
     fn read_u8_vec(&mut self, count: usize) -> io::Result<Vec<u8>> {

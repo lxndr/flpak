@@ -1,10 +1,10 @@
 use std::{
     fs, io,
     io::{Read, Seek, SeekFrom},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
-use crate::FileType;
+use crate::{FileType, PathBufUtils};
 
 use super::{
     hash::Hash,
@@ -12,7 +12,7 @@ use super::{
 };
 
 struct FileEntry {
-    name: String,
+    name: PathBuf,
     size: u32,
     offset: u32,
 }
@@ -69,7 +69,7 @@ impl Reader {
 
                 if hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {
-                        filename: name.clone(),
+                        filename: PathBuf::try_from_ascii_win(&name).unwrap(),
                         hash: hash.to_string(),
                         expected_hash: expected_hash.to_string(),
                     });
@@ -85,7 +85,7 @@ impl Reader {
             .iter()
             .zip(&names)
             .map(|(rec, name)| FileEntry {
-                name: name.clone(),
+                name: PathBuf::try_from_ascii_win(&name).unwrap(),
                 size: rec.size,
                 offset: rec.offset,
             })

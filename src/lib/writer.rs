@@ -54,7 +54,7 @@ pub enum Error {
     #[error("output file cannot be larger than 4GiB")]
     OutputFileLarger4GiB,
 
-    #[error("invalid writer parameter `{0}: {1}")]
+    #[error("invalid option `{0}`: {1}")]
     InvalidParameter(&'static str, String),
 
     #[error("{0}")]

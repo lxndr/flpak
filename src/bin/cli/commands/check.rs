@@ -1,11 +1,11 @@
 use std::{
-    io::{self, Error, ErrorKind, Result},
+    io::{self, Result},
     path::PathBuf,
 };
 
 use clap::Args;
 
-use flpak::{reader, FileType, Registry};
+use flpak::{io_error, reader, FileType, Registry};
 
 #[derive(Debug, Args)]
 #[command(arg_required_else_help = true)]
@@ -26,7 +26,7 @@ pub fn check(args: CheckArgs, verbose: bool) -> Result<()> {
             &args.input_file,
             reader::Options { strict: true },
         )
-        .map_err(|err| Error::new(ErrorKind::Other, err.to_string()))?;
+        .map_err(|err| io_error!(Other, "{}", err))?;
 
     for index in 0..rdr.file_count() {
         let reader::File {
@@ -38,35 +38,37 @@ pub fn check(args: CheckArgs, verbose: bool) -> Result<()> {
         match file_type {
             FileType::RegularFile => {
                 if verbose {
-                    println!("Checking {name}...");
+                    println!("Checking {}...", name.display());
                 }
 
                 let mut stm = rdr.create_file_reader(index).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!("failed to open archived file '{name}': {err}"),
+                    io_error!(
+                        Other,
+                        "failed to open archived file '{}': {err}",
+                        name.display(),
                     )
                 })?;
 
                 let bytes_written = io::copy(&mut stm, &mut io::sink()).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!("failed to read archived file '{name}': {err}"),
+                    io_error!(
+                        Other,
+                        "failed to read archived file '{}': {err}",
+                        name.display(),
                     )
                 })?;
 
                 let size = size.expect("regular file should have size");
 
                 if bytes_written != size {
-                    return Err(Error::new(
-                        ErrorKind::Other,
-                        format!("failed to read archived file '{name}': expected {size} bytes, got {bytes_written} bytes"),
+                    return Err(io_error!(
+                        Other,
+                        "failed to read archived file '{}': expected {size} bytes, got {bytes_written} bytes", name.display(),
                     ));
                 }
             }
             FileType::Directory => {
                 if verbose {
-                    println!("Checking {name}/...");
+                    println!("Checking {}/...", name.display());
                 }
             }
         }

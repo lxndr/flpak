@@ -60,12 +60,12 @@ impl Reader {
             }
 
             for file in &files {
-                let filename_pos = file.name.rfind('/');
-                let filename = match filename_pos {
-                    Some(pos) => &file.name[pos + 1..],
-                    None => &file.name,
-                };
-
+                let filename = file
+                    .name
+                    .file_name()
+                    .expect("should get file name")
+                    .to_str()
+                    .expect("should convert to utf8");
                 let expected_hash = Hash::from_file_name(filename);
 
                 if file.name_hash != expected_hash {

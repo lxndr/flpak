@@ -3,7 +3,7 @@ use std::{
     io::{self, Read, Seek},
 };
 
-use crate::{utils::buffer_to_ascii_zstring, ReadEx, WriteEx};
+use crate::{io_error, utils::buffer_to_ascii_zstring, ReadEx, WriteEx};
 
 pub const BSA_SIGNATURE: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
 pub const BSA_HEADER_SIZE: u64 = 12;
@@ -87,12 +87,8 @@ pub fn read_file_names(
     r.read_exact(&mut names_buf)?;
 
     for offset in name_offsets {
-        let name = buffer_to_ascii_zstring(&names_buf[offset as usize..]).map_err(|err| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("invalid file name: {err}"),
-            )
-        })?;
+        let name = buffer_to_ascii_zstring(&names_buf[offset as usize..])
+            .map_err(|err| io_error!(InvalidData, "invalid file name: {err}",))?;
 
         names.push(name.replace('\\', "/"));
     }

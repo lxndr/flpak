@@ -1,10 +1,13 @@
 use std::{
     collections::BTreeMap,
-    io::{BufRead, Error, ErrorKind, Read, Result},
+    io::{BufRead, Read, Result},
+    path::PathBuf,
     str,
 };
 
 use libflate::zlib;
+
+use crate::{PathBufUtils, io_error};
 
 pub struct Header {
     pub signature: String,
@@ -21,17 +24,17 @@ impl Header {
         let parts: Vec<&str> = header[..header.len() - 1].split(' ').collect();
 
         if parts.len() != 3 {
-            return Err(Error::new(ErrorKind::InvalidData, "invalid header"));
+            return Err(io_error!(InvalidData, "invalid header"));
         }
 
         let signature = parts[0].to_string();
 
         let Ok(index_offset) = u64::from_str_radix(parts[1], 16) else {
-            return Err(Error::new(ErrorKind::InvalidData, "invalid index offset"))
+            return Err(io_error!(InvalidData, "invalid index offset"))
         };
 
         let Ok(key) = u64::from_str_radix(parts[2], 16) else {
-            return Err(Error::new(ErrorKind::InvalidData, "invalid key"))
+            return Err(io_error!(InvalidData, "invalid key"))
         };
 
         Ok(Header {
@@ -43,7 +46,7 @@ impl Header {
 }
 
 pub struct File {
-    pub name: String,
+    pub name: PathBuf,
     pub size: u64,
     pub offset: u64,
 }
@@ -66,7 +69,7 @@ pub fn read_file_index(r: &mut impl BufRead, key: u64) -> Result<Vec<File>> {
             let (offset, size, _) = entries[0];
 
             File {
-                name: name.clone(),
+                name: PathBuf::from_unix(name),
                 offset: offset ^ key,
                 size: size ^ key,
             }

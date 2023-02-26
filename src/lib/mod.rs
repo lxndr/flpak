@@ -1,5 +1,6 @@
 mod file_type;
 mod input_file;
+mod path_utils;
 mod read_ex;
 pub mod reader;
 mod registry;
@@ -18,6 +19,7 @@ mod zip;
 
 pub use file_type::*;
 pub use input_file::*;
+pub use path_utils::*;
 pub use read_ex::*;
 pub use registry::*;
 pub use write_ex::*;

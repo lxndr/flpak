@@ -14,17 +14,17 @@ fn correct() {
 
     let file = rdr.get_file(0);
     assert_eq!(file.file_type, FileType::RegularFile);
-    assert_eq!(file.name, "dir1/img002.jpg");
+    assert_eq!(file.name, Path::new("dir1/img002.jpg"));
     assert_eq!(file.size.unwrap(), 11590);
 
     let file = rdr.get_file(1);
     assert_eq!(file.file_type, FileType::RegularFile);
-    assert_eq!(file.name, "dir1/file002.txt");
+    assert_eq!(file.name, Path::new("dir1/file002.txt"));
     assert_eq!(file.size.unwrap(), 0);
 
     let file = rdr.get_file(2);
     assert_eq!(file.file_type, FileType::RegularFile);
-    assert_eq!(file.name, "file001.txt");
+    assert_eq!(file.name, Path::new("file001.txt"));
     assert_eq!(file.size.unwrap(), 47);
 }
 

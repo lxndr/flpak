@@ -1,18 +1,19 @@
-use std::{fs, io, path::Path, str};
+use std::{io, str};
 
-use crate::reader;
+#[macro_export]
+macro_rules! io_error {
+    ($kind:ident, $($arg:tt)+) => {
+        std::io::Error::new(std::io::ErrorKind::$kind, format!($($arg)+))
+    };
+}
 
 pub fn buffer_to_zstring(buf: &[u8]) -> io::Result<&str> {
     let Some(null_byte_position) = buf.iter().position(|&x| x == 0) else {
-        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "should be a null-terminated string"));
+        return Err(io_error!(UnexpectedEof, "should be a null-terminated string"));
     };
 
-    let val = str::from_utf8(&buf[..null_byte_position]).map_err(|_| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            "should be a correct sequence of characters",
-        )
-    })?;
+    let val = str::from_utf8(&buf[..null_byte_position])
+        .map_err(|_| io_error!(InvalidData, "should be a correct sequence of characters",))?;
 
     Ok(val)
 }
@@ -21,22 +22,10 @@ pub fn buffer_to_ascii_zstring(buf: &[u8]) -> io::Result<&str> {
     let val = buffer_to_zstring(buf)?;
 
     if !val.is_ascii() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "should be an ascii string",
-        ));
+        return Err(io_error!(InvalidData, "should be an ascii string",));
     }
 
     Ok(val)
-}
-
-pub fn open_file(path: &Path) -> reader::Result<(io::BufReader<fs::File>, fs::Metadata)> {
-    let file = fs::File::open(path).map_err(reader::Error::OpeningInputFile)?;
-    let metadata = file
-        .metadata()
-        .map_err(reader::Error::ReadingInputFileMetadata)?;
-    let reader = io::BufReader::new(file);
-    Ok((reader, metadata))
 }
 
 #[cfg(test)]

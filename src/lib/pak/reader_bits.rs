@@ -1,9 +1,10 @@
 use std::{
     fs,
     io::{BufRead, BufReader, Result, Seek, SeekFrom},
+    path::PathBuf,
 };
 
-use crate::{utils::buffer_to_zstring, ReadEx};
+use crate::{utils::buffer_to_zstring, PathBufUtils, ReadEx};
 
 pub struct Header {
     pub index_offset: u32,
@@ -21,7 +22,7 @@ impl Header {
 }
 
 pub struct File {
-    pub name: String,
+    pub name: PathBuf,
     pub offset: u32,
     pub size: u32,
 }
@@ -35,7 +36,7 @@ impl File {
         let name = buffer_to_zstring(&name_buf)?;
 
         Ok(Self {
-            name: name.to_string(),
+            name: PathBuf::from_unix(name),
             offset: r.read_u32_le()?,
             size: r.read_u32_le()?,
         })

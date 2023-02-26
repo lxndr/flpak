@@ -1,11 +1,11 @@
 use std::{
-    io::{Error, ErrorKind, Result},
+    io::Result,
     path::PathBuf,
 };
 
 use clap::Args;
 
-use flpak::{reader, FileType, Registry};
+use flpak::{reader, FileType, Registry, io_error};
 
 #[derive(Debug, Args)]
 #[command(arg_required_else_help = true)]
@@ -31,13 +31,11 @@ pub fn list(args: ListArgs) -> Result<()> {
             },
         )
         .map_err(|err| {
-            Error::new(
-                ErrorKind::Other,
-                format!(
-                    "failed to list files for '{}': {}",
-                    args.input_file.display(),
-                    err
-                ),
+            io_error!(
+                Other,
+                "failed to list files for '{}': {}",
+                args.input_file.display(),
+                err
             )
         })?;
 
@@ -51,9 +49,9 @@ pub fn list(args: ListArgs) -> Result<()> {
         match file_type {
             FileType::RegularFile => {
                 let size = size.expect("regular file should have size");
-                println!("{size:>16} {name}");
+                println!("{size:>16} {}", name.display());
             }
-            FileType::Directory => println!("{name}/"),
+            FileType::Directory => println!("{}/", name.display()),
         }
     }
 

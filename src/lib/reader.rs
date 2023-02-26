@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, result};
+use std::{collections::HashMap, io, path::PathBuf, result};
 
 use crate::FileType;
 
@@ -42,7 +42,7 @@ pub enum Error {
 
     #[error("invalid file name hash '{hash}' for '{filename}', expected '{expected_hash}'")]
     InvalidFileNameHash {
-        filename: String,
+        filename: PathBuf,
         hash: String,
         expected_hash: String,
     },
@@ -66,7 +66,7 @@ pub enum Error {
 pub type Result<T> = result::Result<T, Error>;
 
 pub struct File {
-    pub name: String,
+    pub name: PathBuf,
     pub file_type: FileType,
     pub size: Option<u64>,
 }

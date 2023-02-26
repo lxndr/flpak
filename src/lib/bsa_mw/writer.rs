@@ -10,7 +10,7 @@ use super::{
     hash::Hash,
     records::{FileRecord, Header},
 };
-use crate::{writer, FileType, InputFileList, ToUnixPath, WriteEx};
+use crate::{writer, FileType, InputFileList, WriteEx, PathBufUtils};
 
 struct File {
     local_path: PathBuf,
@@ -76,12 +76,12 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
 
     for file in files.iter() {
         if file.file_type == FileType::RegularFile {
-            let metadata = file.host_path.metadata().map_err(|err| {
-                writer::Error::ReadingInputFileMetadata(file.host_path.clone(), err)
+            let metadata = file.src_path.metadata().map_err(|err| {
+                writer::Error::ReadingInputFileMetadata(file.src_path.clone(), err)
             })?;
             let size = u32::try_from(metadata.len())
-                .map_err(|_| writer::Error::InputFileLarger4GiB(file.host_path.clone()))?;
-            let path = file.path.to_unix_path().to_ascii_lowercase();
+                .map_err(|_| writer::Error::InputFileLarger4GiB(file.src_path.clone()))?;
+            let path = file.dst_path.to_unix().to_ascii_lowercase();
 
             if !path.is_ascii() {
                 return Err(writer::Error::InputFileNotAscii(path));
@@ -90,7 +90,7 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
             let hash = Hash::from_path(&path);
 
             input_files.push(File {
-                local_path: file.host_path.clone(),
+                local_path: file.src_path.clone(),
                 archive_path: path,
                 size,
                 offset: file_data_offset,

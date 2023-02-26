@@ -1,12 +1,12 @@
 use std::{
     fs,
-    io::{self, Error, ErrorKind, Result},
+    io::{self, Result},
     path::PathBuf,
 };
 
 use clap::Args;
 
-use flpak::{reader, FileType, Registry};
+use flpak::{io_error, reader, FileType, Registry};
 
 #[derive(Debug, Args)]
 #[command(arg_required_else_help = true)]
@@ -34,13 +34,11 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
             },
         )
         .map_err(|err| {
-            Error::new(
-                ErrorKind::Other,
-                format!(
-                    "failed to list files for '{}': {}",
-                    args.input_file.display(),
-                    err
-                ),
+            io_error!(
+                Other,
+                "failed to list files for '{}': {}",
+                args.input_file.display(),
+                err,
             )
         })?;
 
@@ -54,64 +52,59 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
         match file_type {
             FileType::RegularFile => {
                 if verbose {
-                    println!("Extracting {name}... ");
+                    println!("Extracting {}... ", name.display());
                 }
 
                 let file_path = args.output_dir.join(&name);
 
                 if let Some(parent) = file_path.parent() {
-                    std::fs::create_dir_all(parent).map_err(|err| {
-                  Error::new(
-                      ErrorKind::Other,
-                      format!("failed to extract file '{}': failed to create output directory '{}': {}", name, parent.display(), err),
-                  )
-              })?;
+                    std::fs::create_dir_all(parent).map_err(|err|
+                        io_error!(
+                        Other,
+                        "failed to extract file '{}': failed to create output directory '{}': {}", name.display(), parent.display(), err)
+                  )?;
                 }
 
                 let mut input_reader = rdr.create_file_reader(index).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!(
-                            "failed to extract file '{}': failed to read archived file '{}': {}",
-                            name,
-                            args.input_file.display(),
-                            err
-                        ),
+                    io_error!(
+                        Other,
+                        "failed to extract file '{}': failed to read archived file '{}': {}",
+                        name.display(),
+                        args.input_file.display(),
+                        err,
                     )
                 })?;
 
                 let mut output_file = fs::File::create(file_path).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!(
-                            "failed to extract file '{}': failed to create output file '{}': {}",
-                            name,
-                            args.input_file.display(),
-                            err
-                        ),
+                    io_error!(
+                        Other,
+                        "failed to extract file '{}': failed to create output file '{}': {}",
+                        name.display(),
+                        args.input_file.display(),
+                        err
                     )
                 })?;
 
                 io::copy(&mut input_reader, &mut output_file).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!(
-                            "failed to extract file '{name}': failed to w output file '{}': {err}",
-                            args.input_file.display(),
-                        ),
+                    io_error!(
+                        Other,
+                        "failed to extract file '{}': failed to w output file '{}': {err}",
+                        name.display(),
+                        args.input_file.display(),
                     )
                 })?;
             }
             FileType::Directory => {
                 if verbose {
-                    println!("Creating directory {name}... ");
+                    println!("Creating directory {}... ", name.display());
                 }
 
                 let dir_path = args.output_dir.join(&name);
                 std::fs::create_dir_all(&dir_path).map_err(|err| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!("failed to create output directory '{name}': {err}"),
+                    io_error!(
+                        Other,
+                        "failed to create output directory '{}': {err}",
+                        name.display()
                     )
                 })?;
             }

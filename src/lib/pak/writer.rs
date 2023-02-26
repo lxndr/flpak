@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use crate::{writer, FileType, InputFile, InputFileList, ToUnixPath, WriteEx};
+use crate::{writer, FileType, InputFile, InputFileList, WriteEx, PathBufUtils};
 
 use super::common::{PAK_FILE_ENTRY_SIZE, PAK_SIGNATURE};
 
@@ -32,12 +32,12 @@ pub fn create_archive(
     let mut index_cursor = Cursor::new(&mut index_buffer);
 
     for input_file in input_files {
-        let metadata = input_file.host_path.metadata().map_err(|err| {
-            writer::Error::ReadingInputFileMetadata(input_file.host_path.clone(), err)
+        let metadata = input_file.src_path.metadata().map_err(|err| {
+            writer::Error::ReadingInputFileMetadata(input_file.src_path.clone(), err)
         })?;
         let size = u32::try_from(metadata.len())
-            .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
-        let path = input_file.path.to_unix_path();
+            .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.src_path.clone()))?;
+        let path = input_file.dst_path.to_unix();
 
         if path.len() > 55 {
             return Err(writer::Error::InputFileNameTooLong(path, 55));
@@ -45,16 +45,16 @@ pub fn create_archive(
 
         let offset = out
             .stream_position()
-            .map_err(|err| writer::Error::ArchivingInputFile(input_file.host_path.clone(), err))?;
+            .map_err(|err| writer::Error::ArchivingInputFile(input_file.src_path.clone(), err))?;
 
-        let mut file = fs::File::open(&input_file.host_path)
-            .map_err(|err| writer::Error::OpeningInputFile(input_file.host_path.clone(), err))?;
+        let mut file = fs::File::open(&input_file.src_path)
+            .map_err(|err| writer::Error::OpeningInputFile(input_file.src_path.clone(), err))?;
 
         io::copy(&mut file, &mut out)
-            .map_err(|err| writer::Error::ArchivingInputFile(input_file.host_path.clone(), err))?;
+            .map_err(|err| writer::Error::ArchivingInputFile(input_file.src_path.clone(), err))?;
 
         let offset = u32::try_from(offset)
-            .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.host_path.clone()))?;
+            .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.src_path.clone()))?;
 
         index_cursor
             .write_all(format!("{:\0<56}", path).as_bytes())

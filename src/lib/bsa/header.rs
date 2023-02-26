@@ -1,8 +1,8 @@
-use std::io::{BufRead, Error, ErrorKind, Result, Write};
+use std::io::{BufRead, Result, Write};
 
 use bitflags::bitflags;
 
-use crate::{ReadEx, WriteEx};
+use crate::{ReadEx, WriteEx, io_error};
 
 use super::Version;
 
@@ -10,29 +10,30 @@ pub const BSA_SIGNATURE: &[u8; 4] = b"BSA\0";
 
 bitflags! {
     pub struct Flags: u32 {
-        const HAS_FOLDER_NAMES = 1 << 0;
-        const HAS_FILE_NAMES   = 1 << 1;
-        const COMPRESSED_BY_DEFAULT   = 1 << 2;
-        const RETAIN_FOLDER_NAMES   = 1 << 3;
-        const RETAIN_FILE_NAMES   = 1 << 4;
-        const RETAIN_FILE_NAME_OFFSETS   = 1 << 5;
-        const BIG_ENDIAN   = 1 << 6;
-        const RETAIN_STRINGS   = 1 << 7;
-        const EMBEDDED_FILE_NAMES   = 1 << 8;
-        const XMEM_CODEC   = 1 << 9;
+        const HAS_FOLDER_NAMES         = 0b0000000000000001;
+        const HAS_FILE_NAMES           = 0b0000000000000010;
+        const COMPRESSED_BY_DEFAULT    = 0b0000000000000100;
+        const RETAIN_FOLDER_NAMES      = 0b0000000000001000;
+        const RETAIN_FILE_NAMES        = 0b0000000000010000;
+        const RETAIN_FILE_NAME_OFFSETS = 0b0000000000100000; // since v104
+        const XBOX                     = 0b0000000001000000;
+        const RETAIN_STRINGS           = 0b0000000010000000;
+        const EMBEDDED_FILE_NAMES      = 0b0000000100000000; // since v104
+        const XMEM_CODEC               = 0b0000001000000000; // since v104
+        const UNKNOWN_11               = 0b0000010000000000; // xbox Oblivion has it
     }
 
     #[derive(Default)]
     pub struct FileFlags: u16 {
-        const MESHES = 1 << 0;
-        const TEXTURES   = 1 << 1;
-        const MENUS   = 1 << 2;
-        const SOUNDS   = 1 << 3;
-        const VOICES   = 1 << 4;
-        const SHADERS   = 1 << 5;
-        const TREES   = 1 << 6;
-        const FONTS   = 1 << 7;
-        const MISC   = 1 << 8;
+        const MESHES                   = 0b0000000000000001;
+        const TEXTURES                 = 0b0000000000000010;
+        const MENUS                    = 0b0000000000000100;
+        const SOUNDS                   = 0b0000000000001000;
+        const VOICES                   = 0b0000000000010000;
+        const SHADERS                  = 0b0000000000100000;
+        const TREES                    = 0b0000000001000000;
+        const FONTS                    = 0b0000000010000000;
+        const MISC                     = 0b0000000100000000;
     }
 }
 
@@ -51,6 +52,12 @@ pub struct Header {
     pub total_folder_name_length: u32,
     pub total_file_name_length: u32,
     pub file_flags: FileFlags,
+}
+
+impl Header {
+    pub fn embedded_file_names(&self) -> bool {
+        self.version == Version::V105 && self.flags.contains(Flags::EMBEDDED_FILE_NAMES)
+    }
 }
 
 impl Default for Header {
@@ -73,16 +80,16 @@ pub trait ReadHeader: BufRead {
     fn read_header(&mut self) -> Result<Header> {
         Ok(Header {
             version: Version::try_from(self.read_u32_le()?)
-                .map_err(|err| Error::new(ErrorKind::InvalidData, err))?,
+                .map_err(|err| io_error!(InvalidData, "{}", err))?,
             folder_records_offset: self.read_u32_le()?,
             flags: Flags::from_bits(self.read_u32_le()?)
-                .ok_or_else(|| Error::new(ErrorKind::InvalidData, "invalid flags"))?,
+                .ok_or_else(|| io_error!(InvalidData, "invalid flags"))?,
             folder_count: self.read_u32_le()?,
             file_count: self.read_u32_le()?,
             total_folder_name_length: self.read_u32_le()?,
             total_file_name_length: self.read_u32_le()?,
             file_flags: FileFlags::from_bits(self.read_u16_le()?)
-                .ok_or_else(|| Error::new(ErrorKind::InvalidData, "invalid file flags"))?,
+                .ok_or_else(|| io_error!(InvalidData, "invalid file flags"))?,
         })
     }
 }

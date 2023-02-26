@@ -1,9 +1,10 @@
 use std::{
-    io::{BufRead, Error, ErrorKind, Result},
+    io::{BufRead, Result},
+    path::PathBuf,
     str,
 };
 
-use crate::ReadEx;
+use crate::{io_error, PathBufUtils, ReadEx};
 
 pub struct Header {
     pub signature: [u8; 4],
@@ -43,7 +44,7 @@ impl Header {
 }
 
 pub struct File {
-    pub name: String,
+    pub name: PathBuf,
     pub crc: u32,
     pub preload_bytes: Vec<u8>,
     pub archive_index: Option<u16>,
@@ -83,10 +84,7 @@ pub fn read_file_tree(r: &mut impl BufRead) -> Result<Vec<File>> {
                 let terminator = r.read_u16_le()?;
 
                 if terminator != 0xffff {
-                    return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        "invalid file entry terminator",
-                    ));
+                    return Err(io_error!(InvalidData, "invalid file entry terminator",));
                 }
 
                 // read preload bytes
@@ -114,7 +112,7 @@ pub fn read_file_tree(r: &mut impl BufRead) -> Result<Vec<File>> {
     Ok(files)
 }
 
-fn format_filepath(basepath: &str, filename: &str, ext: &str) -> String {
+fn format_filepath(basepath: &str, filename: &str, ext: &str) -> PathBuf {
     let mut path = String::new();
 
     if !basepath.is_empty() {
@@ -125,5 +123,5 @@ fn format_filepath(basepath: &str, filename: &str, ext: &str) -> String {
     path.push('.');
     path.push_str(ext);
 
-    path
+    PathBuf::from_unix(&path)
 }

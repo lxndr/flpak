@@ -2,12 +2,12 @@ use std::{
     collections::{BTreeMap, HashMap},
     fs,
     io::{self, Seek, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use libflate::zlib;
 
-use crate::{writer, FileType, InputFileList, ToUnixPath, WriteEx};
+use crate::{writer, FileType, InputFileList, PathBufUtils, WriteEx};
 
 use super::{
     write_file_index::{File, Folder},
@@ -17,10 +17,10 @@ use super::{
 pub fn create_archive(
     input_files: InputFileList,
     path: &Path,
-    params: &HashMap<String, String>,
+    options: &HashMap<String, String>,
 ) -> writer::Result<()> {
     let mut hdr = Header::default();
-    parse_params(params, &mut hdr)?;
+    parse_options(options, &mut hdr)?;
 
     let folder_record_size = match hdr.version {
         Version::V103 | Version::V104 => 16,
@@ -159,7 +159,7 @@ pub fn create_archive(
     Ok(())
 }
 
-fn parse_params(params: &HashMap<String, String>, hdr: &mut Header) -> crate::writer::Result<()> {
+fn parse_options(params: &HashMap<String, String>, hdr: &mut Header) -> crate::writer::Result<()> {
     hdr.version = Version::try_from(params.get("version"))
         .map_err(|err| writer::Error::InvalidParameter("version", err))?;
 
@@ -172,7 +172,7 @@ fn parse_params(params: &HashMap<String, String>, hdr: &mut Header) -> crate::wr
     }
 
     if big_endian {
-        hdr.flags |= Flags::BIG_ENDIAN;
+        hdr.flags |= Flags::XBOX;
     }
 
     if xmem_codec {
@@ -195,22 +195,23 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
     for input_file in input_files {
         match input_file.file_type {
             FileType::Directory => {
-                let folder_name = input_file.path.to_unix_path().to_ascii_lowercase();
+                let folder_name = input_file.dst_path.to_unix().to_ascii_lowercase();
                 add_folder(&mut folders, folder_name)?;
             }
             FileType::RegularFile => {
                 let file_name = input_file
-                    .path
+                    .dst_path
                     .file_name()
                     .expect("should get file name")
                     .to_str()
                     .expect("should convert file name to utf8 string")
                     .to_ascii_lowercase();
                 let folder_name = input_file
-                    .path
+                    .dst_path
                     .parent()
-                    .unwrap_or(&input_file.path)
-                    .to_unix_path()
+                    .unwrap_or(&input_file.dst_path)
+                    .to_path_buf()
+                    .to_unix()
                     .to_ascii_lowercase();
 
                 if folder_name.is_empty() {
@@ -224,7 +225,7 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
                 let folder = add_folder(&mut folders, folder_name)?;
 
                 folder.files.push(File {
-                    local_path: input_file.host_path.clone(),
+                    local_path: input_file.src_path.clone(),
                     name_hash: Hash::from_file_name(&file_name),
                     name: file_name,
                     size: 0,
@@ -268,7 +269,9 @@ fn add_folder(
     let entry_key = folder_name.clone();
 
     let folder = folders.entry(entry_key).or_insert_with(|| Folder {
-        name_hash: Hash::from_folder_path(&folder_name),
+        name_hash: Hash::from_folder_path(
+            &PathBuf::try_from_ascii_win(&folder_name).unwrap(),
+        ),
         name: folder_name,
         offset: 0,
         files: Vec::new(),

@@ -1,13 +1,13 @@
 use std::{
     fs,
     io::{BufReader, Read, Seek, SeekFrom},
-    path::Path,
+    path::{Path, PathBuf},
     str,
 };
 
 use libflate::zlib;
 
-use crate::{FileType, ReadEx};
+use crate::{FileType, PathBufUtils, ReadEx};
 
 use super::records::{
     GeneralBlock, Header, TextureBlock, TextureChunk, TextureInfo, BA2_SIGNATURE,
@@ -17,7 +17,7 @@ pub struct Reader {
     stm: BufReader<fs::File>,
     general_files: Vec<GeneralBlock>,
     texture_files: Vec<TextureInfo>,
-    names: Vec<String>,
+    names: Vec<PathBuf>,
 }
 
 impl Reader {
@@ -98,6 +98,8 @@ impl Reader {
         for _ in 0..hdr.num_files {
             let name = stm
                 .read_u16le_string()
+                .map_err(crate::reader::Error::ReadingFileName)?;
+            let name = PathBuf::try_from_ascii_win(&name)
                 .map_err(crate::reader::Error::ReadingFileName)?;
             names.push(name);
         }
