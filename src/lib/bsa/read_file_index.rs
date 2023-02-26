@@ -17,8 +17,8 @@ pub struct Folder {
 pub struct File {
     pub name: PathBuf,
     pub name_hash: Hash,
-    pub size: u32,
-    pub original_size: u32,
+    pub packed_size: u32,
+    pub unpacked_size: u32,
     pub offset: u32,
     pub compressed: bool,
 }
@@ -26,7 +26,8 @@ pub struct File {
 pub trait ReadFileIndex: BufRead + Seek {
     #[inline]
     fn read_folder_record(&mut self, hdr: &Header) -> Result<Folder> {
-        let name_hash = self.read_hash()?;
+        let is_xbox = hdr.flags.contains(Flags::XBOX);
+        let name_hash = self.read_hash(is_xbox)?;
         let file_count = self.read_u32_le()?;
 
         if hdr.version == Version::V105 {
@@ -52,13 +53,14 @@ pub trait ReadFileIndex: BufRead + Seek {
         let has_folder_names = hdr.flags.contains(Flags::HAS_FOLDER_NAMES);
         let has_file_names = hdr.flags.contains(Flags::HAS_FILE_NAMES);
         let compressed_by_default = hdr.flags.contains(Flags::COMPRESSED_BY_DEFAULT);
+        let is_xbox = hdr.flags.contains(Flags::XBOX);
         let embed_file_names = hdr.embedded_file_names();
 
         let mut folders = Vec::new();
         let mut files = Vec::new();
 
         // folder records
-        self.seek(SeekFrom::Start(u64::from(hdr.folder_records_offset)))?;
+        self.seek(SeekFrom::Start(hdr.folder_records_offset.into()))?;
 
         for _ in 0..hdr.folder_count {
             folders.push(self.read_folder_record(hdr)?);
@@ -76,21 +78,21 @@ pub trait ReadFileIndex: BufRead + Seek {
             }
 
             for _ in 0..folder.file_count {
-                let name_hash = self.read_hash()?;
+                let name_hash = self.read_hash(is_xbox)?;
                 let mut size = self.read_u32_le()?;
                 let offset = self.read_u32_le()?;
                 let mut compressed = compressed_by_default;
 
                 if size & 0x40000000 != 0 {
                     compressed = !compressed;
-                    size ^= 0x40000000;
+                    size &= 0x3FFFFFFF;
                 }
 
                 files.push(File {
                     name: folder.name.clone(), // the file name will be appended later
                     name_hash,
-                    size,
-                    original_size: size,
+                    packed_size: size,
+                    unpacked_size: size,
                     offset,
                     compressed,
                 });
@@ -99,8 +101,10 @@ pub trait ReadFileIndex: BufRead + Seek {
 
         // file names
         if has_file_names {
-            let buf_len =
-                usize::try_from(hdr.total_file_name_length).expect("should fit into `usize`");
+            let buf_len = hdr
+                .total_file_name_length
+                .try_into()
+                .expect("should fit into `usize`");
             let buf = self.read_u8_vec(buf_len)?;
             let str_data = String::from_utf8(buf)
                 .map_err(|err| io_error!(InvalidData, "invalid file names block: {err}"))?;
@@ -122,16 +126,15 @@ pub trait ReadFileIndex: BufRead + Seek {
 
         // file data blocks
         for file in &mut files {
-            self.seek(SeekFrom::Start(u64::from(file.offset)))?;
+            self.seek(SeekFrom::Start(file.offset.into()))?;
 
             if embed_file_names {
                 let full_path = self.read_u8_string().map_err(|err| {
                     io_error!(InvalidData, "failed to read embedded file name: {err}")
                 })?;
-                let full_path =
-                    PathBuf::try_from_ascii_win(&full_path).map_err(|err| {
-                        io_error!(InvalidData, "invalid file name `{full_path}`: {err}")
-                    })?;
+                let full_path = PathBuf::try_from_ascii_win(&full_path).map_err(|err| {
+                    io_error!(InvalidData, "invalid file name `{full_path}`: {err}")
+                })?;
 
                 if has_folder_names && has_folder_names {
                     if full_path != file.name {
@@ -147,8 +150,15 @@ pub trait ReadFileIndex: BufRead + Seek {
             }
 
             if file.compressed {
-                file.original_size = self.read_u32_le()?;
+                file.packed_size -= 4;
+                file.unpacked_size = self.read_u32_le()?;
             }
+
+            // real data offset
+            file.offset = self
+                .stream_position()?
+                .try_into()
+                .expect("should fit into `u32`");
         }
 
         Ok((folders, files))

@@ -67,9 +67,6 @@ pub fn check(args: CheckArgs, verbose: bool) -> Result<()> {
                 }
             }
             FileType::Directory => {
-                if verbose {
-                    println!("Checking {}/...", name.display());
-                }
             }
         }
     }

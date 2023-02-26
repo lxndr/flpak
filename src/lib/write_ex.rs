@@ -53,6 +53,13 @@ pub trait WriteEx: Write {
     /// # Errors
     /// Will return same errors as [`Write::write`] does.
     #[inline]
+    fn write_u32_be(&mut self, val: u32) -> Result<()> {
+        self.write_u32(val, true)
+    }
+
+    /// # Errors
+    /// Will return same errors as [`Write::write`] does.
+    #[inline]
     fn write_u64(&mut self, val: u64, big_endian: bool) -> Result<()> {
         let bytes = if big_endian {
             val.to_be_bytes()

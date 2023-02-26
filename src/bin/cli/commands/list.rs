@@ -51,7 +51,7 @@ pub fn list(args: ListArgs) -> Result<()> {
                 let size = size.expect("regular file should have size");
                 println!("{size:>16} {}", name.display());
             }
-            FileType::Directory => println!("{}/", name.display()),
+            FileType::Directory => println!("{:>16} {}/", " ", name.display()),
         }
     }
 

@@ -116,7 +116,7 @@ impl crate::reader::Reader for Reader {
             crate::reader::File {
                 name: file.name.clone(),
                 file_type: FileType::RegularFile,
-                size: Some(u64::from(file.size)),
+                size: Some(u64::from(file.unpacked_size)),
             }
         }
     }
@@ -140,7 +140,7 @@ impl crate::reader::Reader for Reader {
             .seek(SeekFrom::Start(u64::from(file_rec.offset)))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
-        let data_stm = self.file.by_ref().take(u64::from(file_rec.size));
+        let data_stm = self.file.by_ref().take(u64::from(file_rec.packed_size));
 
         if file_rec.compressed {
             if self.xmem_codec {

@@ -102,16 +102,31 @@ impl fmt::LowerHex for Hash {
 }
 
 pub trait ReadHash: io::BufRead {
-    fn read_hash(&mut self) -> io::Result<Hash> {
-        Ok(Hash(self.read_u64_le()?))
+    fn read_hash(&mut self, is_xbox: bool) -> io::Result<Hash> {
+        if is_xbox {
+            let low = self.read_u32_le()?;
+            let high = self.read_u32_be()?;
+            return Ok(Hash(u64::from(high) << 32 | u64::from(low)));
+        } else {
+            Ok(Hash(self.read_u64_le()?))
+        }
     }
 }
 
 impl<R: io::BufRead + ?Sized> ReadHash for R {}
 
 pub trait WriteHash: io::Write {
-    fn write_hash(&mut self, hash: &Hash) -> io::Result<()> {
-        self.write_u64_le(hash.0)
+    fn write_hash(&mut self, hash: &Hash, is_xbox: bool) -> io::Result<()> {
+        if is_xbox {
+            let low = hash.0.try_into().expect("low u32");
+            let high = (hash.0 >> 32).try_into().expect("high u32");
+            self.write_u32_le(low)?;
+            self.write_u32_be(high)?;
+        } else {
+            self.write_u64_le(hash.0)?;
+        }
+
+        Ok(())
     }
 }
 

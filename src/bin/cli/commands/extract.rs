@@ -46,7 +46,7 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
         let reader::File {
             file_type,
             name,
-            size: _size,
+            size,
         } = rdr.get_file(index);
 
         match file_type {
@@ -56,26 +56,30 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
                 }
 
                 let file_path = args.output_dir.join(&name);
+                let size = size.expect("regular file should have size");
 
                 if let Some(parent) = file_path.parent() {
-                    std::fs::create_dir_all(parent).map_err(|err|
+                    std::fs::create_dir_all(&parent).map_err(|err| {
                         io_error!(
-                        Other,
-                        "failed to extract file '{}': failed to create output directory '{}': {}", name.display(), parent.display(), err)
-                  )?;
+                            Other,
+                            "failed to extract file '{}': failed to create directory '{}': {}",
+                            name.display(),
+                            parent.display(),
+                            err
+                        )
+                    })?;
                 }
 
                 let mut input_reader = rdr.create_file_reader(index).map_err(|err| {
                     io_error!(
                         Other,
-                        "failed to extract file '{}': failed to read archived file '{}': {}",
+                        "failed to extract file '{}': {}",
                         name.display(),
-                        args.input_file.display(),
                         err,
                     )
                 })?;
 
-                let mut output_file = fs::File::create(file_path).map_err(|err| {
+                let mut output_file = fs::File::create(&file_path).map_err(|err| {
                     io_error!(
                         Other,
                         "failed to extract file '{}': failed to create output file '{}': {}",
@@ -85,18 +89,30 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
                     )
                 })?;
 
-                io::copy(&mut input_reader, &mut output_file).map_err(|err| {
+                output_file.set_len(size).map_err(|err| {
                     io_error!(
                         Other,
-                        "failed to extract file '{}': failed to w output file '{}': {err}",
+                        "failed to extract file '{}': failed to allocate space: {}",
                         name.display(),
-                        args.input_file.display(),
+                        err
                     )
                 })?;
+
+                let bytes_written =
+                    io::copy(&mut input_reader, &mut output_file).map_err(|err| {
+                        io_error!(Other, "failed to extract file '{}': {err}", name.display(),)
+                    })?;
+
+                if bytes_written != size {
+                    return Err(io_error!(
+                        Other,
+                        "failed to unpack file '{}': expected {size} bytes, got {bytes_written} bytes", name.display(),
+                    ));
+                }
             }
             FileType::Directory => {
                 if verbose {
-                    println!("Creating directory {}... ", name.display());
+                    println!("Creating directory {}/... ", name.display());
                 }
 
                 let dir_path = args.output_dir.join(&name);

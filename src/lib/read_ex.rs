@@ -48,6 +48,11 @@ pub trait ReadEx: BufRead {
     }
 
     #[inline]
+    fn read_u32_be(&mut self) -> Result<u32> {
+        self.read_u32(true)
+    }
+
+    #[inline]
     fn read_u64(&mut self, big_endian: bool) -> Result<u64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf)?;

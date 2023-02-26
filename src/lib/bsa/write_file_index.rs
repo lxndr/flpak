@@ -25,6 +25,8 @@ pub struct File {
 pub trait WriteFileIndex: Write {
     #[inline]
     fn write_folder_record(&mut self, folder: &Folder, hdr: &Header) -> Result<()> {
+        let is_xbox = hdr.flags.contains(Flags::XBOX);
+
         let file_count: u32 = folder
             .files
             .len()
@@ -32,7 +34,7 @@ pub trait WriteFileIndex: Write {
             .expect("should fit into `u32`");
         let folder_offset = folder.offset + hdr.total_file_name_length;
 
-        self.write_hash(&folder.name_hash)?;
+        self.write_hash(&folder.name_hash, is_xbox)?;
         self.write_u32_le(file_count)?;
 
         if hdr.version == Version::V105 {
@@ -57,6 +59,7 @@ pub trait WriteFileIndex: Write {
     ) -> Result<()> {
         let has_folder_names = hdr.flags.contains(Flags::HAS_FOLDER_NAMES);
         let has_file_names = hdr.flags.contains(Flags::HAS_FILE_NAMES);
+        let is_xbox = hdr.flags.contains(Flags::XBOX);
 
         // folder records
         for folder in folders {
@@ -70,7 +73,7 @@ pub trait WriteFileIndex: Write {
             }
 
             for file in &folder.files {
-                self.write_hash(&file.name_hash)?;
+                self.write_hash(&file.name_hash, is_xbox)?;
                 self.write_u32_le(file.size)?;
                 self.write_u32_le(file.offset)?;
             }
