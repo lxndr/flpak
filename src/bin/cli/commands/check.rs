@@ -66,8 +66,7 @@ pub fn check(args: CheckArgs, verbose: bool) -> Result<()> {
                     ));
                 }
             }
-            FileType::Directory => {
-            }
+            FileType::Directory => {}
         }
     }
 

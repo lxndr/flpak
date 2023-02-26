@@ -1,10 +1,8 @@
 use std::{
     fs,
-    io::{BufReader, Read, Seek, SeekFrom},
+    io::{BufReader, Cursor, Read, Seek, SeekFrom},
     path::Path,
 };
-
-use libflate::zlib;
 
 use crate::{FileType, ReadEx};
 
@@ -65,7 +63,7 @@ impl Reader {
                     .file_name()
                     .expect("should get file name")
                     .to_str()
-                    .expect("should convert to utf8");
+                    .expect("should convert to utf-8");
                 let expected_hash = Hash::from_file_name(filename);
 
                 if file.name_hash != expected_hash {
@@ -151,9 +149,16 @@ impl crate::reader::Reader for Reader {
 
             match self.version {
                 Version::V103 | Version::V104 => {
-                    let decoder = zlib::Decoder::new(data_stm)
+                    let mut decoder = flate2::read::ZlibDecoder::new(data_stm);
+
+                    // FIXME: in some circumstances, decompression doesn't work properly if io::copy is used directly
+                    let mut unpacked_data = vec![0; file_rec.unpacked_size as usize];
+                    decoder
+                        .read_exact(&mut unpacked_data)
                         .map_err(crate::reader::Error::ReadingInputFile)?;
-                    return Ok(Box::new(decoder));
+                    let unpacked_data_cur = Cursor::new(unpacked_data);
+
+                    return Ok(Box::new(unpacked_data_cur));
                 }
                 Version::V105 => {
                     let decoder = lz4_flex::frame::FrameDecoder::new(data_stm);

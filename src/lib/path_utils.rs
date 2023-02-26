@@ -44,7 +44,7 @@ impl PathBufUtils for PathBuf {
                 Component::Normal(name) => {
                     let utf8_name = name
                         .to_str()
-                        .ok_or_else(|| io_error!(InvalidInput, "file name is not utf8"))?;
+                        .ok_or_else(|| io_error!(InvalidInput, "file name is not utf-8"))?;
                     components.push(utf8_name);
                 }
                 _ => {
@@ -88,7 +88,7 @@ impl PathBufUtils for PathBuf {
                 Component::Normal(name) => {
                     let utf8_name = name
                         .to_str()
-                        .expect("should be able to convert file name to utf8 string");
+                        .expect("should be able to convert file name to utf-8 string");
                     components.push(utf8_name);
                 }
                 _ => {

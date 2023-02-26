@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    io::Result,
-    path::PathBuf,
-};
+use std::{collections::HashMap, io::Result, path::PathBuf};
 
 use clap::Args;
 

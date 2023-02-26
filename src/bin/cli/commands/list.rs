@@ -1,11 +1,8 @@
-use std::{
-    io::Result,
-    path::PathBuf,
-};
+use std::{io::Result, path::PathBuf};
 
 use clap::Args;
 
-use flpak::{reader, FileType, Registry, io_error};
+use flpak::{io_error, reader, FileType, Registry};
 
 #[derive(Debug, Args)]
 #[command(arg_required_else_help = true)]

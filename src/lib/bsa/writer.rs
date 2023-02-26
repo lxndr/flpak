@@ -204,7 +204,7 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
                     .file_name()
                     .expect("should get file name")
                     .to_str()
-                    .expect("should convert file name to utf8 string")
+                    .expect("should convert file name to utf-8 string")
                     .to_ascii_lowercase();
                 let folder_name = input_file
                     .dst_path
@@ -269,9 +269,7 @@ fn add_folder(
     let entry_key = folder_name.clone();
 
     let folder = folders.entry(entry_key).or_insert_with(|| Folder {
-        name_hash: Hash::from_folder_path(
-            &PathBuf::try_from_ascii_win(&folder_name).unwrap(),
-        ),
+        name_hash: Hash::from_folder_path(&PathBuf::try_from_ascii_win(&folder_name).unwrap()),
         name: folder_name,
         offset: 0,
         files: Vec::new(),

@@ -10,7 +10,7 @@ use super::{
     hash::Hash,
     records::{FileRecord, Header},
 };
-use crate::{writer, FileType, InputFileList, WriteEx, PathBufUtils};
+use crate::{writer, FileType, InputFileList, PathBufUtils, WriteEx};
 
 struct File {
     local_path: PathBuf,

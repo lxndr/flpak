@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use crate::{writer, FileType, InputFile, InputFileList, WriteEx, PathBufUtils};
+use crate::{writer, FileType, InputFile, InputFileList, PathBufUtils, WriteEx};
 
 use super::common::{PAK_FILE_ENTRY_SIZE, PAK_SIGNATURE};
 

@@ -38,9 +38,8 @@ pub fn create_archive(
                 writer::Error::ArchivingInputFile(input_file.src_path.clone(), err)
             })?;
 
-            let mut file = fs::File::open(&input_file.src_path).map_err(|err| {
-                writer::Error::OpeningInputFile(input_file.src_path.clone(), err)
-            })?;
+            let mut file = fs::File::open(&input_file.src_path)
+                .map_err(|err| writer::Error::OpeningInputFile(input_file.src_path.clone(), err))?;
             io::copy(&mut file, &mut out).map_err(|err| {
                 writer::Error::ArchivingInputFile(input_file.src_path.clone(), err)
             })?;

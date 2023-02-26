@@ -20,10 +20,8 @@ fn calc_file_name_hash() {
 fn calc_folder_name_hash() {
     assert_eq!(
         Hash::from_folder_path(
-            &PathBuf::try_from_ascii_win(
-                "sound\\voice\\hearthfires.esm\\femaleelfhaughty"
-            )
-            .unwrap()
+            &PathBuf::try_from_ascii_win("sound\\voice\\hearthfires.esm\\femaleelfhaughty")
+                .unwrap()
         ),
         Hash::from(0x00400744732C7479),
     );

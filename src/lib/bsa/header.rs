@@ -2,7 +2,7 @@ use std::io::{BufRead, Result, Write};
 
 use bitflags::bitflags;
 
-use crate::{ReadEx, WriteEx, io_error};
+use crate::{io_error, ReadEx, WriteEx};
 
 use super::Version;
 

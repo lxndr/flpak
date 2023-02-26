@@ -233,6 +233,7 @@ dependencies = [
  "bitflags",
  "clap",
  "crc32fast",
+ "flate2",
  "glob",
  "hex-literal",
  "libflate",

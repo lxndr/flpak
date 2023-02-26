@@ -7,7 +7,7 @@ use std::{
 
 use libflate::zlib;
 
-use crate::{PathBufUtils, io_error};
+use crate::{io_error, PathBufUtils};
 
 pub struct Header {
     pub signature: String,

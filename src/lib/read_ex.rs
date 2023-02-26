@@ -93,17 +93,13 @@ pub trait ReadEx: BufRead {
         let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
 
         if len == 0 {
-            return Err(io_error!(
-                InvalidData,
-                "string cannot be 0 length",
-            ));
+            return Err(io_error!(InvalidData, "string cannot be 0 length",));
         }
 
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf[..len - 1].to_vec())
-            .map_err(|err| io_error!(InvalidData, "{}", err))
+        String::from_utf8(buf[..len - 1].to_vec()).map_err(|err| io_error!(InvalidData, "{}", err))
     }
 
     /// Reads a sized string.
