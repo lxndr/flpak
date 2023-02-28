@@ -1,5 +1,7 @@
 use std::{fmt, io, path::PathBuf};
 
+use encoding_rs::WINDOWS_1252;
+
 use crate::{PathBufUtils, ReadEx, WriteEx};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -8,41 +10,37 @@ pub struct Hash(u64);
 impl Hash {
     pub fn from_file_name(fname: &str) -> Hash {
         assert_ne!(fname.len(), 0);
+        let (fname, _, _) = WINDOWS_1252.encode(fname);
 
-        let (name, ext) = match fname.rfind('.') {
+        let (name, ext) = match fname.iter().rposition(|&b| b == b'.') {
             Some(pos) => (&fname[..pos], &fname[pos..]),
-            None => (fname, ""),
+            None => (&fname[..], &b""[..]),
         };
 
-        let name_bytes = name.as_bytes();
-        let name_len = name_bytes.len();
-        let ext_bytes = ext.as_bytes();
+        let name_len = name.len();
 
-        let mut hash1 = Self::calc_name_hash(name);
-        hash1 |= Self::calc_ext_hash(ext);
+        let mut hash1 = Self::calc_name_hash(&name);
+        hash1 |= Self::calc_ext_hash(&ext);
 
         let hash2: u64 = if name_len > 3 {
-            Self::calc_slice_hash(&name_bytes[1..name_len - 2])
-                .wrapping_add(Self::calc_slice_hash(ext_bytes))
+            Self::calc_slice_hash(&name[1..name_len - 2]).wrapping_add(Self::calc_slice_hash(&ext))
         } else {
-            Self::calc_slice_hash(ext_bytes)
+            Self::calc_slice_hash(&ext)
         };
 
         Hash((hash2 << 32) + u64::from(hash1))
     }
 
     pub fn from_folder_path(name: &PathBuf) -> Hash {
-        let name = name
-            .try_to_ascii_win()
-            .expect("should be a valid ascii path");
+        let name = name.try_to_win().expect("should be a valid ascii path");
         assert_ne!(name.len(), 0);
 
-        let name_bytes = name.as_bytes();
-        let name_len = name_bytes.len();
+        let (name, _, _) = WINDOWS_1252.encode(&name);
+        let name_len = name.len();
 
         let hash1 = Self::calc_name_hash(&name);
         let hash2: u64 = if name_len > 3 {
-            Self::calc_slice_hash(&name_bytes[1..name_len - 2])
+            Self::calc_slice_hash(&name[1..name_len - 2])
         } else {
             0
         };
@@ -50,24 +48,23 @@ impl Hash {
         Hash((hash2 << 32) + u64::from(hash1))
     }
 
-    fn calc_name_hash(name: &str) -> u32 {
-        let bytes = name.as_bytes();
-        let len = bytes.len();
+    fn calc_name_hash(name: &[u8]) -> u32 {
+        let len = name.len();
 
-        let mut hash: u32 = u32::from(bytes[len - 1]);
-        hash |= u32::from(if len < 3 { 0 } else { bytes[len - 2] }) << 8;
+        let mut hash: u32 = u32::from(name[len - 1]);
+        hash |= u32::from(if len < 3 { 0 } else { name[len - 2] }) << 8;
         hash |= (len as u32) << 16;
-        hash |= u32::from(bytes[0]) << 24;
+        hash |= u32::from(name[0]) << 24;
 
         hash
     }
 
-    fn calc_ext_hash(ext: &str) -> u32 {
+    fn calc_ext_hash(ext: &[u8]) -> u32 {
         match ext {
-            ".kf" => 0x80,
-            ".nif" => 0x8000,
-            ".dds" => 0x8080,
-            ".wav" => 0x80000000,
+            b".kf" => 0x80,
+            b".nif" => 0x8000,
+            b".dds" => 0x8080,
+            b".wav" => 0x80000000,
             _ => 0,
         }
     }

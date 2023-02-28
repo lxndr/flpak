@@ -4,6 +4,8 @@ use std::{
     path::PathBuf,
 };
 
+use encoding_rs::WINDOWS_1252;
+
 use crate::{utils::buffer_to_zstring, PathBufUtils, ReadEx};
 
 pub struct Header {
@@ -33,10 +35,10 @@ impl File {
         let mut name_buf = vec![0u8; 56];
         r.read_exact(&mut name_buf)?;
 
-        let name = buffer_to_zstring(&name_buf)?;
+        let name = buffer_to_zstring(&name_buf, WINDOWS_1252)?.to_string();
 
         Ok(Self {
-            name: PathBuf::from_unix(name),
+            name: PathBuf::from_unix(&name),
             offset: r.read_u32_le()?,
             size: r.read_u32_le()?,
         })

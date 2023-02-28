@@ -1,7 +1,7 @@
 use std::{
     fs,
     io::{self, Result},
-    path::PathBuf,
+    path::{PathBuf, MAIN_SEPARATOR},
 };
 
 use clap::Args;
@@ -112,7 +112,11 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
             }
             FileType::Directory => {
                 if verbose {
-                    println!("Creating directory {}/... ", name.display());
+                    println!(
+                        "Creating directory {}{}... ",
+                        name.display(),
+                        MAIN_SEPARATOR
+                    );
                 }
 
                 let dir_path = args.output_dir.join(&name);

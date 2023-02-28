@@ -35,6 +35,9 @@ pub enum Error {
     #[error("failed to archive file '{0}: file name should not be longer than {1}")]
     InputFileNameTooLong(String, usize),
 
+    #[error("failed to archive file '{0}: invalid file name: {1}")]
+    InvalidInputFileName(PathBuf, #[source] io::Error),
+
     #[error("failed to archive file '{0}: file name can only contain ascii characters")]
     InputFileNotAscii(String),
 

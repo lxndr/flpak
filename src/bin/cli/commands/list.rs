@@ -1,4 +1,7 @@
-use std::{io::Result, path::PathBuf};
+use std::{
+    io::Result,
+    path::{PathBuf, MAIN_SEPARATOR},
+};
 
 use clap::Args;
 
@@ -48,7 +51,7 @@ pub fn list(args: ListArgs) -> Result<()> {
                 let size = size.expect("regular file should have size");
                 println!("{size:>16} {}", name.display());
             }
-            FileType::Directory => println!("{:>16} {}/", " ", name.display()),
+            FileType::Directory => println!("{:>16} {}{}", " ", name.display(), MAIN_SEPARATOR),
         }
     }
 

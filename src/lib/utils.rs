@@ -1,4 +1,6 @@
-use std::{io, str};
+use std::{borrow::Cow, io, str};
+
+use encoding_rs::Encoding;
 
 #[macro_export]
 macro_rules! io_error {
@@ -7,60 +9,50 @@ macro_rules! io_error {
     };
 }
 
-pub fn buffer_to_zstring(buf: &[u8]) -> io::Result<&str> {
+pub fn buffer_to_zstring<'a>(
+    buf: &'a [u8],
+    encoding: &'static Encoding,
+) -> io::Result<Cow<'a, str>> {
     let Some(null_byte_position) = buf.iter().position(|&x| x == 0) else {
         return Err(io_error!(UnexpectedEof, "should be a null-terminated string"));
     };
 
-    let val = str::from_utf8(&buf[..null_byte_position])
-        .map_err(|_| io_error!(InvalidData, "should be a correct sequence of characters",))?;
+    let (cow, _, had_error) = encoding.decode(&buf[..null_byte_position]);
 
-    Ok(val)
-}
-
-pub fn buffer_to_ascii_zstring(buf: &[u8]) -> io::Result<&str> {
-    let val = buffer_to_zstring(buf)?;
-
-    if !val.is_ascii() {
-        return Err(io_error!(InvalidData, "should be an ascii string",));
+    if had_error {
+        return Err(io_error!(
+            InvalidData,
+            "should be a correct sequence of characters"
+        ));
     }
 
-    Ok(val)
+    Ok(cow)
 }
 
 #[cfg(test)]
 mod tests {
     mod buffer_to_zstring {
+        use encoding_rs::UTF_8;
+
         use super::super::buffer_to_zstring;
         use std::io::ErrorKind;
 
         #[test]
         fn correct() {
-            let res = buffer_to_zstring(b"text\0\0\0\0\0");
+            let res = buffer_to_zstring(b"text\0\0\0\0\0", UTF_8);
             assert_eq!(res.unwrap(), "text");
         }
 
         #[test]
         fn not_null_terminated() {
-            let res = buffer_to_zstring(b"text");
-            assert_eq!(res.unwrap_err().kind(), ErrorKind::UnexpectedEof,);
+            let res = buffer_to_zstring(b"text", UTF_8);
+            assert_eq!(res.unwrap_err().kind(), ErrorKind::UnexpectedEof);
         }
 
         #[test]
         fn invalid_utf8_sequence() {
-            let res = buffer_to_zstring(b"text\xc3\x28\0");
-            assert_eq!(res.unwrap_err().kind(), ErrorKind::InvalidData,);
-        }
-    }
-
-    mod buffer_to_ascii_zstring {
-        use super::super::buffer_to_ascii_zstring;
-        use std::io::ErrorKind;
-
-        #[test]
-        fn invalid_ascii() {
-            let res = buffer_to_ascii_zstring(b"text\xc3\xb1\0");
-            assert_eq!(res.unwrap_err().kind(), ErrorKind::InvalidData,);
+            let res = buffer_to_zstring(b"text\xc3\x28\0", UTF_8);
+            assert_eq!(res.unwrap_err().kind(), ErrorKind::InvalidData);
         }
     }
 }

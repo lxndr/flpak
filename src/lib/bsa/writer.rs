@@ -195,7 +195,13 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
     for input_file in input_files {
         match input_file.file_type {
             FileType::Directory => {
-                let folder_name = input_file.dst_path.to_unix().to_ascii_lowercase();
+                let folder_name = input_file
+                    .dst_path
+                    .try_to_win()
+                    .map_err(|err| {
+                        writer::Error::InvalidInputFileName(input_file.dst_path.clone(), err)
+                    })?
+                    .to_lowercase();
                 add_folder(&mut folders, folder_name)?;
             }
             FileType::RegularFile => {
@@ -205,14 +211,17 @@ fn collect_file_index(input_files: &InputFileList) -> writer::Result<Vec<Folder>
                     .expect("should get file name")
                     .to_str()
                     .expect("should convert file name to utf-8 string")
-                    .to_ascii_lowercase();
+                    .to_lowercase();
                 let folder_name = input_file
                     .dst_path
                     .parent()
                     .unwrap_or(&input_file.dst_path)
                     .to_path_buf()
-                    .to_unix()
-                    .to_ascii_lowercase();
+                    .try_to_win()
+                    .map_err(|err| {
+                        writer::Error::InvalidInputFileName(input_file.dst_path.clone(), err)
+                    })?
+                    .to_lowercase();
 
                 if folder_name.is_empty() {
                     return Err(writer::Error::InputFileNotInFolder(file_name));
@@ -269,7 +278,7 @@ fn add_folder(
     let entry_key = folder_name.clone();
 
     let folder = folders.entry(entry_key).or_insert_with(|| Folder {
-        name_hash: Hash::from_folder_path(&PathBuf::try_from_ascii_win(&folder_name).unwrap()),
+        name_hash: Hash::from_folder_path(&PathBuf::from_win(&folder_name)),
         name: folder_name,
         offset: 0,
         files: Vec::new(),

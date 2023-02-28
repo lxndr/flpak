@@ -37,7 +37,10 @@ pub fn create_archive(
         })?;
         let size = u32::try_from(metadata.len())
             .map_err(|_| writer::Error::InputFileLarger4GiB(input_file.src_path.clone()))?;
-        let path = input_file.dst_path.to_unix();
+        let path = input_file
+            .dst_path
+            .try_to_unix()
+            .map_err(|err| writer::Error::InvalidInputFileName(input_file.dst_path.clone(), err))?;
 
         if path.len() > 55 {
             return Err(writer::Error::InputFileNameTooLong(path, 55));

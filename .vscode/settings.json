@@ -21,6 +21,8 @@
     "RENPY",
     "repr",
     "rfind",
+    "rposition",
+    "rsplitn",
     "splitn",
     "tempdir",
     "thiserror",

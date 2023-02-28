@@ -3,6 +3,8 @@ use std::{
     mem, slice,
 };
 
+use encoding_rs::Encoding;
+
 use crate::io_error;
 
 pub trait ReadEx: BufRead {
@@ -89,33 +91,42 @@ pub trait ReadEx: BufRead {
 
     /// Reads a sized null-terminated string.
     /// First byte signifies integer length of following string including null.
-    fn read_u8_zstring(&mut self) -> Result<String> {
-        let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
+    fn read_u8_zstring(&mut self, encoding: &'static Encoding) -> Result<String> {
+        let len = self.read_u8()?.try_into().expect("should fit into `usize`");
 
         if len == 0 {
-            return Err(io_error!(InvalidData, "string cannot be 0 length",));
+            return Err(io_error!(
+                InvalidData,
+                "string length (including null terminator) cannot be 0"
+            ));
         }
 
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf[..len - 1].to_vec()).map_err(|err| io_error!(InvalidData, "{}", err))
+        if buf[len - 1] != 0 {
+            return Err(io_error!(InvalidData, "string must be null terminated"));
+        }
+
+        let (s, _, _) = encoding.decode(&buf[..len - 1]);
+        Ok(s.to_string())
     }
 
     /// Reads a sized string.
     /// First byte signifies integer length of following string.
-    fn read_u8_string(&mut self) -> Result<String> {
-        let len: usize = self.read_u8()?.try_into().expect("should fit into `usize`");
+    fn read_u8_string(&mut self, encoding: &'static Encoding) -> Result<String> {
+        let len = self.read_u8()?.try_into().expect("should fit into `usize`");
 
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf).map_err(|err| io_error!(InvalidData, "{}", err))
+        let (s, _, _) = encoding.decode(&buf);
+        Ok(s.to_string())
     }
 
     /// Reads a sized string.
     /// First two bytes signify little endian 16 bit integer length of following string.
-    fn read_u16le_string(&mut self) -> Result<String> {
+    fn read_u16le_string(&mut self, encoding: &'static Encoding) -> Result<String> {
         let len: usize = self
             .read_u16_le()?
             .try_into()
@@ -124,7 +135,8 @@ pub trait ReadEx: BufRead {
         let mut buf = vec![0u8; len];
         self.read_exact(&mut buf)?;
 
-        String::from_utf8(buf).map_err(|err| io_error!(InvalidData, "{}", err))
+        let (s, _, _) = encoding.decode(&buf);
+        Ok(s.to_string())
     }
 
     fn read_u8_vec(&mut self, count: usize) -> io::Result<Vec<u8>> {

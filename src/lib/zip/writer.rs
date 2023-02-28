@@ -13,7 +13,11 @@ pub fn create_archive(
     for input_file in input_files {
         match input_file.file_type {
             FileType::Directory => {
-                let path = format!("{}/", input_file.dst_path.to_unix());
+                let mut path = input_file
+                    .dst_path
+                    .try_to_unix()
+                    .map_err(|err| writer::Error::InvalidInputFileName(input_file.dst_path, err))?;
+                path.push('/');
                 zip.add_directory(path, Default::default())
                     .map_err(|err| writer::Error::WritingFileData(io_error!(Other, "{}", err,)))?;
             }
@@ -22,7 +26,10 @@ pub fn create_archive(
                     writer::Error::OpeningInputFile(input_file.src_path.clone(), err)
                 })?;
 
-                let path = input_file.dst_path.to_unix();
+                let path = input_file
+                    .dst_path
+                    .try_to_unix()
+                    .map_err(|err| writer::Error::InvalidInputFileName(input_file.dst_path, err))?;
                 let options = zip::write::FileOptions::default()
                     .compression_method(zip::CompressionMethod::Deflated);
 

@@ -5,6 +5,7 @@ use std::{
     str,
 };
 
+use encoding_rs::WINDOWS_1252;
 use libflate::zlib;
 
 use crate::{FileType, PathBufUtils, ReadEx};
@@ -97,11 +98,9 @@ impl Reader {
 
         for _ in 0..hdr.num_files {
             let name = stm
-                .read_u16le_string()
+                .read_u16le_string(WINDOWS_1252)
                 .map_err(crate::reader::Error::ReadingFileName)?;
-            let name = PathBuf::try_from_ascii_win(&name)
-                .map_err(crate::reader::Error::ReadingFileName)?;
-            names.push(name);
+            names.push(PathBuf::from_win(&name));
         }
 
         if options.strict {

@@ -29,7 +29,10 @@ pub fn create_archive(
                 writer::Error::ReadingInputFileMetadata(input_file.src_path.clone(), err)
             })?;
             let size = metadata.len();
-            let path = input_file.dst_path.to_unix();
+            let path = input_file
+                .dst_path
+                .try_to_unix()
+                .map_err(|err| writer::Error::InvalidInputFileName(input_file.dst_path, err))?;
 
             out.write_all(RENPY_PADDING).map_err(|err| {
                 writer::Error::ArchivingInputFile(input_file.src_path.clone(), err)

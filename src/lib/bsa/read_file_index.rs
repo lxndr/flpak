@@ -3,6 +3,8 @@ use std::{
     path::PathBuf,
 };
 
+use encoding_rs::WINDOWS_1252;
+
 use crate::{io_error, PathBufUtils, ReadEx};
 
 use super::{hash::ReadHash, Flags, Hash, Header, Version};
@@ -72,9 +74,8 @@ pub trait ReadFileIndex: BufRead + Seek {
             self.seek(SeekFrom::Start(folder_offset))?;
 
             if has_folder_names {
-                let path = self.read_u8_zstring()?;
-                folder.name = PathBuf::try_from_ascii_win(&path)
-                    .map_err(|err| io_error!(InvalidData, "invalid folder name `{path}`: {err}"))?;
+                let path = self.read_u8_zstring(WINDOWS_1252)?;
+                folder.name = PathBuf::from_win(&path);
             }
 
             for _ in 0..folder.file_count {
@@ -105,23 +106,17 @@ pub trait ReadFileIndex: BufRead + Seek {
                 .total_file_name_length
                 .try_into()
                 .expect("should fit into `usize`");
-            let buf = self.read_u8_vec(buf_len)?;
-            let str_data = String::from_utf8(buf)
-                .map_err(|err| io_error!(InvalidData, "invalid file names block: {err}"))?;
-            let file_names: Vec<&str> = str_data.split_terminator('\0').collect();
 
-            if file_names.len() < files.len() {
-                return Err(io_error!(
-                    InvalidData,
-                    "invalid number of file names found {}, expected at least {}",
-                    file_names.len(),
-                    files.len()
-                ));
-            }
-
-            for (file, file_name) in files.iter_mut().zip(file_names) {
-                file.name.push(file_name);
-            }
+            self.read_u8_vec(buf_len)?
+                .split(|&ch| ch == 0)
+                .map(|bytes| {
+                    let (cow, _, _) = WINDOWS_1252.decode(bytes);
+                    cow.to_string()
+                })
+                .zip(&mut files)
+                .for_each(|(file_name, file)| {
+                    file.name.push(file_name);
+                });
         }
 
         // file data blocks
@@ -129,12 +124,11 @@ pub trait ReadFileIndex: BufRead + Seek {
             self.seek(SeekFrom::Start(file.offset.into()))?;
 
             if embed_file_names {
-                let full_path = self.read_u8_string().map_err(|err| {
+                let full_path = self.read_u8_string(WINDOWS_1252).map_err(|err| {
                     io_error!(InvalidData, "failed to read embedded file name: {err}")
                 })?;
-                let full_path = PathBuf::try_from_ascii_win(&full_path).map_err(|err| {
-                    io_error!(InvalidData, "invalid file name `{full_path}`: {err}")
-                })?;
+
+                let full_path = PathBuf::from_win(&full_path);
 
                 if has_folder_names && has_folder_names {
                     if full_path != file.name {

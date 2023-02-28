@@ -8,12 +8,12 @@ use crate::io_error;
 
 pub trait PathBufUtils {
     fn from_win(path: &str) -> PathBuf;
-    fn try_from_ascii_win(path: &str) -> Result<PathBuf>;
     fn try_to_win(&self) -> Result<String>;
-    fn try_to_ascii_win(&self) -> Result<String>;
 
     fn from_unix(path: &str) -> PathBuf;
-    fn to_unix(&self) -> String;
+    fn try_to_unix(&self) -> Result<String>;
+
+    fn to_safe_components(&self) -> Result<Vec<&str>>;
 }
 
 impl PathBufUtils for PathBuf {
@@ -28,15 +28,26 @@ impl PathBufUtils for PathBuf {
         path
     }
 
-    fn try_from_ascii_win(path: &str) -> Result<PathBuf> {
-        if !path.is_ascii() {
-            return Err(io_error!(InvalidInput, "path is not ascii"));
-        }
-
-        Ok(Self::from_win(path))
+    fn try_to_win(&self) -> Result<String> {
+        Ok(self.to_safe_components()?.join("\\"))
     }
 
-    fn try_to_win(&self) -> Result<String> {
+    fn from_unix(path: &str) -> PathBuf {
+        let components = path.split('/').collect::<Vec<&str>>();
+        let mut path = PathBuf::new();
+
+        for cmp in components {
+            path.push(cmp);
+        }
+
+        path
+    }
+
+    fn try_to_unix(&self) -> Result<String> {
+        Ok(self.to_safe_components()?.join("/"))
+    }
+
+    fn to_safe_components(&self) -> Result<Vec<&str>> {
         let mut components = Vec::new();
 
         for cmp in self.components() {
@@ -56,47 +67,6 @@ impl PathBufUtils for PathBuf {
             }
         }
 
-        Ok(components.join("\\"))
-    }
-
-    fn try_to_ascii_win(&self) -> Result<String> {
-        let path = self.try_to_win()?;
-
-        if !path.is_ascii() {
-            return Err(io_error!(InvalidInput, "path is not ascii"));
-        }
-
-        Ok(path)
-    }
-
-    fn from_unix(path: &str) -> PathBuf {
-        let components = path.split('/').collect::<Vec<&str>>();
-        let mut path = PathBuf::new();
-
-        for cmp in components {
-            path.push(cmp);
-        }
-
-        path
-    }
-
-    fn to_unix(&self) -> String {
-        let mut components = Vec::new();
-
-        for cmp in self.components() {
-            match cmp {
-                Component::Normal(name) => {
-                    let utf8_name = name
-                        .to_str()
-                        .expect("should be able to convert file name to utf-8 string");
-                    components.push(utf8_name);
-                }
-                _ => {
-                    panic!("only normal path components are allowed");
-                }
-            }
-        }
-
-        components.join("/")
+        Ok(components)
     }
 }

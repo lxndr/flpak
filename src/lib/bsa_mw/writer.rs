@@ -81,7 +81,11 @@ fn collect_file_info(files: &InputFileList) -> writer::Result<Vec<File>> {
             })?;
             let size = u32::try_from(metadata.len())
                 .map_err(|_| writer::Error::InputFileLarger4GiB(file.src_path.clone()))?;
-            let path = file.dst_path.to_unix().to_ascii_lowercase();
+            let path = file
+                .dst_path
+                .try_to_win()
+                .map_err(|err| writer::Error::InvalidInputFileName(file.dst_path.clone(), err))?
+                .to_lowercase();
 
             if !path.is_ascii() {
                 return Err(writer::Error::InputFileNotAscii(path));

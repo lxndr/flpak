@@ -69,7 +69,7 @@ impl Reader {
 
                 if hash != expected_hash {
                     return Err(crate::reader::Error::InvalidFileNameHash {
-                        filename: PathBuf::try_from_ascii_win(&name).unwrap(),
+                        filename: PathBuf::from_win(&name),
                         hash: hash.to_string(),
                         expected_hash: expected_hash.to_string(),
                     });
@@ -85,7 +85,7 @@ impl Reader {
             .iter()
             .zip(&names)
             .map(|(rec, name)| FileEntry {
-                name: PathBuf::try_from_ascii_win(&name).unwrap(),
+                name: PathBuf::from_win(&name),
                 size: rec.size,
                 offset: rec.offset,
             })

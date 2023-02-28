@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn into_unix_path() {
         let path = Path::new("dir1/file1.txt");
-        let unix_path = path.to_path_buf().to_unix();
+        let unix_path = path.to_path_buf().try_to_unix().unwrap();
         assert_eq!(unix_path, "dir1/file1.txt");
     }
 }
