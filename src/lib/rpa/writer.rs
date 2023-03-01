@@ -52,7 +52,7 @@ pub fn create_archive(
                 vec![(
                     offset ^ u64::from(DEFAULT_KEY),
                     size ^ u64::from(DEFAULT_KEY),
-                    String::from(""),
+                    String::new(),
                 )],
             );
         }

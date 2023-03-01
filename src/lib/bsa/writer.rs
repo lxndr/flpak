@@ -50,10 +50,12 @@ pub fn create_archive(
         }
     }
 
-    hdr.folder_count = folders.len() as u32;
-    hdr.file_count = file_count as u32;
-    hdr.total_folder_name_length = total_folder_name_length as u32;
-    hdr.total_file_name_length = names.len() as u32;
+    hdr.folder_count = folders.len().try_into().expect("should fit into `u32`");
+    hdr.file_count = file_count.try_into().expect("should fit into `u32`");
+    hdr.total_folder_name_length = total_folder_name_length
+        .try_into()
+        .expect("should fit into `u32`");
+    hdr.total_file_name_length = names.len().try_into().expect("should fit into `u32`");
 
     let mut file_data_offset =
         // header
@@ -164,26 +166,28 @@ fn parse_options(params: &HashMap<String, String>, hdr: &mut Header) -> crate::w
         .map_err(|err| writer::Error::InvalidParameter("version", err))?;
 
     let compress = params.get("compress").map_or(false, |v| v == "true");
-    let big_endian = params.get("big-endian").map_or(false, |v| v == "true");
-    let xmem_codec = params.get("xmem-codec").map_or(false, |v| v == "true");
+    let xbox = params.get("xbox").map_or(false, |v| v == "true");
+    let embed_names = params.get("embed-names").map_or(false, |v| v == "true");
 
     if compress {
         hdr.flags |= Flags::COMPRESSED_BY_DEFAULT;
     }
 
-    if big_endian {
+    if xbox {
         hdr.flags |= Flags::XBOX;
+
+        if compress {
+            return Err(writer::Error::Other(
+                "XMEM codec is not supported yet".into(),
+            ));
+
+            // hdr.flags |= Flags::COMPRESSED_BY_DEFAULT;
+            // hdr.flags |= Flags::XMEM_CODEC;
+        }
     }
 
-    if xmem_codec {
-        hdr.flags |= Flags::COMPRESSED_BY_DEFAULT;
-        hdr.flags |= Flags::XMEM_CODEC;
-    }
-
-    if xmem_codec {
-        return Err(writer::Error::Other(
-            "XMEM codec is not supported yet".into(),
-        ));
+    if embed_names {
+        hdr.flags |= Flags::EMBEDDED_FILE_NAMES;
     }
 
     Ok(())

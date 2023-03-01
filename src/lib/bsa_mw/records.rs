@@ -64,7 +64,7 @@ pub fn read_file_index(r: &mut impl io::BufRead, count: usize) -> io::Result<Vec
     let mut index = r.read_c_struct_vec::<FileRecord>(count)?;
 
     if cfg!(target_endian = "big") {
-        for rec in index.iter_mut() {
+        for rec in &mut index {
             rec.size = u32::from_le(rec.size);
             rec.offset = u32::from_le(rec.offset);
         }
