@@ -30,3 +30,6 @@ tempdir = "0.3.7"
 thiserror = "1.0.38"
 walkdir = "2.3.2"
 zip = "0.6.4"
+
+[dev-dependencies]
+rstest = "0.16.0"

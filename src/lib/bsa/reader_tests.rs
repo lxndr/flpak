@@ -1,23 +1,25 @@
 use std::path::Path;
 
+use rstest::rstest;
+
 use crate::reader::Options;
 
 use super::make_reader;
 
-#[test]
-fn correct_v105() {
-    let res = make_reader(
-        Path::new("./samples/bsa/correct_v105.bsa"),
-        Options { strict: true },
-    );
+#[rstest]
+#[case("103", false, false)]
+#[case("103", true, false)]
+#[case("103", true, true)]
+#[case("104", false, false)]
+#[case("104", true, false)]
+#[case("105", false, false)]
+#[case("105", true, false)]
+fn correct(#[case] version: &str, #[case] compress: bool, #[case] embed_names: bool) {
+    let compress = if compress { "_comp" } else { "" };
+    let embed_names = if embed_names { "_names" } else { "" };
 
-    assert_eq!(res.is_ok(), true);
-}
-
-#[test]
-fn correct_v103_xbox() {
     let res = make_reader(
-        Path::new("./samples/bsa/correct_v103_xbox.bsa"),
+        Path::new(&format!("./samples/bsa/correct_v{version}{compress}{embed_names}.bsa")),
         Options { strict: true },
     );
 

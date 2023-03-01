@@ -5,8 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use libflate::zlib;
-
 use crate::{writer, FileType, InputFileList, PathBufUtils, WriteEx};
 
 use super::{
@@ -90,18 +88,18 @@ pub fn create_archive(
                 .map_err(|err| writer::Error::OpeningInputFile(file.local_path.clone(), err))?
                 .len();
 
-            if hdr.flags.contains(Flags::EMBEDDED_FILE_NAMES) {
-                output_file
-                    .write_u8_string(&format!("{}/{}", folder.name, file.name))
-                    .map_err(writer::Error::WritingFileData)?;
-            }
-
             let output_file_pos = output_file
                 .stream_position()
                 .map_err(writer::Error::WritingFileData)?;
             file.offset = output_file_pos
                 .try_into()
                 .map_err(|_| writer::Error::OutputFileLarger4GiB)?;
+
+            if hdr.embedded_file_names() {
+                output_file
+                    .write_u8_string(&format!("{}/{}", folder.name, file.name))
+                    .map_err(writer::Error::WritingFileData)?;
+            }
 
             if hdr.flags.contains(Flags::COMPRESSED_BY_DEFAULT) {
                 let input_file_size = input_file_size
@@ -113,13 +111,11 @@ pub fn create_archive(
 
                 match hdr.version {
                     Version::V103 | Version::V104 => {
-                        let mut encoder = zlib::Encoder::new(&mut output_file)
-                            .map_err(writer::Error::WritingFileData)?;
+                        let mut encoder = flate2::write::ZlibEncoder::new(
+                            &mut output_file,
+                            flate2::Compression::best(),
+                        );
                         io::copy(&mut input_file, &mut encoder)
-                            .map_err(writer::Error::WritingFileData)?;
-                        encoder
-                            .finish()
-                            .into_result()
                             .map_err(writer::Error::WritingFileData)?;
                     }
                     Version::V105 => {

@@ -23,6 +23,7 @@
     "rfind",
     "rposition",
     "rsplitn",
+    "rstest",
     "splitn",
     "tempdir",
     "thiserror",
