@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Pre-build
+      run: sudo apt-get install -y musl-tools
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+        profile: minimal
+        toolchain: stable
+
+    - name: Build
+      run: |
+        cargo build --target ${{ matrix.target }} --release
+        strip target/${{ matrix.target }}/release/flpak
+
+    - name: Package Binary
+      run: |
+        tar -czf flpak_${{ matrix.target }}_${{ github.ref_name }}.tar.gz -C target/${{ matrix.target }}/release ./flpak
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: flpak ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+        files: flpak_${{ matrix.target }}_${{ github.ref_name }}.tar.gz
+
+  build-windows:
+    strategy:
+      matrix:
+        target:
+          - i686-pc-windows-msvc
+          - x86_64-pc-windows-msvc
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+        profile: minimal
+        toolchain: stable
+
+    - name: Build
+      run: |
+        cargo build --target ${{ matrix.target }} --release
+
+    - name: Package Binary
+      run: |
+        tar -czf flpak_${{ matrix.target }}_${{ github.ref_name }}.zip -C target/${{ matrix.target }}/release ./flpak.exe
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: flpak ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+        files: flpak_${{ matrix.target }}_${{ github.ref_name }}.zip
