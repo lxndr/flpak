@@ -1,3 +1,4 @@
+// https://en.uesp.net/wiki/Oblivion_Mod:BSA_File_Format
 // https://en.uesp.net/wiki/Skyrim_Mod:Archive_File_Format
 
 mod hash;

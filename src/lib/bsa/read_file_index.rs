@@ -21,8 +21,9 @@ pub struct File {
     pub name_hash: Hash,
     pub packed_size: u32,
     pub unpacked_size: u32,
-    pub offset: u32,
     pub compressed: bool,
+    pub offset: u32,
+    pub data_offset: u32,
 }
 
 pub trait ReadFileIndex: BufRead + Seek {
@@ -94,8 +95,9 @@ pub trait ReadFileIndex: BufRead + Seek {
                     name_hash,
                     packed_size: size,
                     unpacked_size: size,
-                    offset,
                     compressed,
+                    offset,
+                    data_offset: offset,
                 });
             }
         }
@@ -144,16 +146,18 @@ pub trait ReadFileIndex: BufRead + Seek {
             }
 
             if file.compressed {
-                file.packed_size -= 4;
                 file.unpacked_size = self.read_u32_le()?;
             }
 
             // real data offset
-            file.offset = self
+            file.data_offset = self
                 .stream_position()?
                 .try_into()
                 .expect("should fit into `u32`");
+            file.packed_size -= file.data_offset - file.offset;
         }
+
+        files.sort_by_key(|file| file.data_offset);
 
         Ok((folders, files))
     }

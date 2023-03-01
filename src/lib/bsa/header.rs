@@ -56,7 +56,8 @@ pub struct Header {
 
 impl Header {
     pub fn embedded_file_names(&self) -> bool {
-        self.version == Version::V105 && self.flags.contains(Flags::EMBEDDED_FILE_NAMES)
+        (self.version == Version::V104 || self.version == Version::V105)
+            && self.flags.contains(Flags::EMBEDDED_FILE_NAMES)
     }
 }
 

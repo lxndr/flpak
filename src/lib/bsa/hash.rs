@@ -19,13 +19,13 @@ impl Hash {
 
         let name_len = name.len();
 
-        let mut hash1 = Self::calc_name_hash(&name);
-        hash1 |= Self::calc_ext_hash(&ext);
+        let mut hash1 = Self::calc_name_hash(name);
+        hash1 |= Self::calc_ext_hash(ext);
 
         let hash2: u64 = if name_len > 3 {
-            Self::calc_slice_hash(&name[1..name_len - 2]).wrapping_add(Self::calc_slice_hash(&ext))
+            Self::calc_slice_hash(&name[1..name_len - 2]).wrapping_add(Self::calc_slice_hash(ext))
         } else {
-            Self::calc_slice_hash(&ext)
+            Self::calc_slice_hash(ext)
         };
 
         Hash((hash2 << 32) + u64::from(hash1))
@@ -103,7 +103,7 @@ pub trait ReadHash: io::BufRead {
         if is_xbox {
             let low = self.read_u32_le()?;
             let high = self.read_u32_be()?;
-            return Ok(Hash(u64::from(high) << 32 | u64::from(low)));
+            Ok(Hash(u64::from(high) << 32 | u64::from(low)))
         } else {
             Ok(Hash(self.read_u64_le()?))
         }

@@ -135,7 +135,7 @@ impl crate::reader::Reader for Reader {
             .expect("`index` should be within boundaries");
 
         self.file
-            .seek(SeekFrom::Start(u64::from(file_rec.offset)))
+            .seek(SeekFrom::Start(u64::from(file_rec.data_offset)))
             .map_err(crate::reader::Error::ReadingInputFile)?;
 
         let data_stm = self.file.by_ref().take(u64::from(file_rec.packed_size));
