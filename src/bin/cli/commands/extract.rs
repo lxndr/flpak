@@ -6,7 +6,7 @@ use std::{
 
 use clap::Args;
 
-use flpak::{io_error, reader, FileType, Registry};
+use flpak::{io_error, reader, FileType, Registry, PathBufUtils};
 
 #[derive(Debug, Args)]
 #[command(arg_required_else_help = true)]
@@ -53,6 +53,14 @@ pub fn extract(args: ExtractArgs, verbose: bool) -> Result<()> {
             FileType::RegularFile => {
                 if verbose {
                     println!("Extracting {}... ", name.display());
+                }
+
+                if !name.is_safe() {
+                    return Err(io_error!(
+                        Other,
+                        "failed to extract file '{}': unsafe path",
+                        name.display(),
+                    ));
                 }
 
                 let file_path = args.output_dir.join(&name);

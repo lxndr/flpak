@@ -7,6 +7,8 @@ use std::{
 use crate::io_error;
 
 pub trait PathBufUtils {
+    fn is_safe(&self) -> bool;
+
     fn from_win(path: &str) -> PathBuf;
     fn try_to_win(&self) -> Result<String>;
 
@@ -17,6 +19,17 @@ pub trait PathBufUtils {
 }
 
 impl PathBufUtils for PathBuf {
+    fn is_safe(&self) -> bool {
+        for cmp in self.components() {
+            match cmp {
+                Component::Normal(_) => (),
+                _ => return false,
+            }
+        }
+
+        true
+    }
+
     fn from_win(path: &str) -> PathBuf {
         let components = path.split('\\').collect::<Vec<&str>>();
         let mut path = PathBuf::new();
