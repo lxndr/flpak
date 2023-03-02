@@ -20,14 +20,12 @@ pub trait PathBufUtils {
 
 impl PathBufUtils for PathBuf {
     fn is_safe(&self) -> bool {
-        for cmp in self.components() {
+        self.components().all(|cmp| {
             match cmp {
-                Component::Normal(_) => (),
-                _ => return false,
+                Component::Normal(_) => true,
+                _ => false,
             }
-        }
-
-        true
+        })
     }
 
     fn from_win(path: &str) -> PathBuf {
