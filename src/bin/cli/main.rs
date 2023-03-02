@@ -4,8 +4,9 @@ use clap::{Parser, Subcommand};
 
 mod commands;
 
+/// An archive utility. It can create, extract, list and check archives. Run `list-formats` to see supported formats.
 #[derive(Parser)]
-#[command(about = "An archive utility", long_about = None)]
+#[command(version, long_about = None)]
 pub struct Args {
     #[arg(short, long)]
     pub verbose: bool,

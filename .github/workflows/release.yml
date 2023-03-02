@@ -79,7 +79,7 @@ jobs:
 
     - name: Package Binary
       run: |
-        tar -czf flpak_${{ matrix.target }}_${{ github.ref_name }}.zip -C target/${{ matrix.target }}/release ./flpak.exe
+        Compress-Archive -Path target/${{ matrix.target }}/release/flpak.exe -Destination flpak_${{ matrix.target }}_${{ github.ref_name }}.zip
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
