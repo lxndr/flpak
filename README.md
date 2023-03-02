@@ -36,7 +36,9 @@ A utility to work with some random archive formats.
 
 #### Creating an archive
 
-```flpak create --format pak --add-dir ./input_dir --exclude unneeded_file/in_resulting_archive.txt ./archive.ext```
+```flpak create --format pak --add-dir ./input_dir --exclude unneeded_file/in_resulting_archive.txt ./archive.pak```
+
+```flpak create --format bsa --options version=104,compress=true --add-dir ./input_dir --exclude unneeded_file/in_resulting_archive.txt ./archive.bsa```
 
 ## Development
 
