@@ -1,7 +1,12 @@
 [package]
 name = "flpak"
+description = "A utility to work with some types of archive: bsa, ba2, rpa, vpk, pak, zip."
 version = "0.5.2"
 edition = "2021"
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/lxndr/flpak"
+categories = ["command-line-utilities"]
 rust-version = "1.67.1"
 
 [lib]
